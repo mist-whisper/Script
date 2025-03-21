@@ -1,19 +1,5 @@
 // 引用地址：https://raw.githubusercontent.com/githubdulong/Script/master/jd_price.js
 
-/*
- * 脚本名称：京东比价
- * 使用说明：进入APP商品详情页面触发。
- * 支持版本：App V15.0.80（自行测试）
- * 脚本作者：小白脸
- 
-[Script]
-京东比价 = type=http-response,pattern=^https:\/\/in\.m\.jd\.com\/product\/graphext\/\d+\.html,requires-body=1,max-size=0,binary-body-mode=0,script-path=https://raw.githubusercontent.com/githubdulong/Script/master/jd_price.js,timeout=60
- 
-[MITM]
-hostname = %APPEND% in.m.jd.com
-
-*/
-
 const http = (op) => {
   const { promise, resolve, reject } = Promise.withResolvers();
 
