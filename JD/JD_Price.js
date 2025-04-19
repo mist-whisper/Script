@@ -1,4 +1,4 @@
-// 引用地址：https://raw.githubusercontent.com/githubdulong/Script/master/jd_price.js
+// 引用地址：https://github.com/githubdulong/Script/blob/master/jd_price.js
 
 intCryptoJS();
 
