@@ -4,25 +4,7 @@ const path1 = '/product/graphext/';
 const path2 = '/baoliao/center/menu'
 const manmanbuy_key = 'manmanbuy_val';
 const url = $request.url;
-const $ = new Env("京东助手");
-// 获取模块传入参数
-const args = typeof $argument !== "undefined" ? $argument : "";
-$.log(`读取参数: ${args}`);
-const argObj = Object.fromEntries(
-args.split("&").map(item => item.split("=").map(decodeURIComponent))
-);
-const isEmpty = (val) => !val || val === "null";
-
-// 参数优先级：模块参数 > BoxJs 本地存储
-$.jd_unionId = !isEmpty(argObj["jd_union_id"]) ? argObj["jd_union_id"] : $.getdata("jd_unionId") || "";
-$.jd_positionId = !isEmpty(argObj["jd_position_id"]) ? argObj["jd_position_id"] : $.getdata("jd_positionId") || "";
-$.jtt_appid = !isEmpty(argObj["jtt_appid"]) ? argObj["jtt_appid"] : $.getdata("jtt_appid") || "";
-$.jtt_appkey = !isEmpty(argObj["jtt_appkey"]) ? argObj["jtt_appkey"] : $.getdata("jtt_appkey") || "";
-$.disableNotice = argObj["disable_notice"] === "false" ? false : true;
-const defaultThemeTime = "7-19";
-$.themeTime = !isEmpty(argObj["theme_time"])
-  ? argObj["theme_time"]
-  : $.getdata("theme_time") || defaultThemeTime;
+const $ = new Env("京东比价");
 
 if (url.includes(path2)) {
     const reqbody = $request.body;
@@ -33,30 +15,17 @@ if (url.includes(path2)) {
 if (url.includes(path1)) {
     intCryptoJS();
     $.manmanbuy = getck();
-    let url = $request.url;
-    $.appType = url.includes("lite-in.m.jd.com") ? "jdtj" : "jd";
 
     (async () => {
         const match = url.match(/product\/graphext\/(\d+)\.html/);
-        if (!match) {
-            $done({});
-            return;
-        }
-
+         if (!match) return $done({});
         const shareUrl = `https://item.jd.com/${match[1]}.html`;
         try {
-            if ($.disableNotice && $.jd_unionId && $.jtt_appid && $.jtt_appkey) {
-    $.sku = match[1];
-    await jingfenJingTuiTui();
-    await notice();
-} else if (!$.disableNotice) {
-    $.log("已禁用京推推返利和通知，仅显示比价图表");
-}
             //const parseRes = await SiteCommand_parse(shareUrl);
             //const parse = checkRes(parseRes, '获取 stteId');
             //const basicRes = await getItemBasicInfo(parse.stteId, parse.link);
+          
             const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
-
             const basic = checkRes(basicRes, '获取 spbh');
 
             const shareRes = await share(basic.spbh, basic.url);
@@ -79,77 +48,7 @@ if (url.includes(path1)) {
     })();
 }
 
-/** 京推推转链 */
-async function jingfenJingTuiTui() {
-    $.log("转链开始");
-    return new Promise((resolve) => {
-        const options = {
-            url: `http://japi.jingtuitui.com/api/universal?appid=${$.jtt_appid}&appkey=${$.jtt_appkey}&v=v3&unionid=${$.jd_unionId}&positionid=${$.jd_positionId}&content=https://item.jd.com/${$.sku}.html`,
-            timeout: 5000,
-            headers: { "Content-Type": "application/json;charset=utf-8" },
-        };
-        $.get(options, (err, resp, data) => {
-            try {
-                if (err) {
-                    $.log("京推推 universal 请求失败：" + $.toStr(err));
-                } else {
-                    data = JSON.parse(data);
-                    if (data["return"] == 0) {
-                        const linkData = data?.result?.link_date?.[0] || {};
-                        const { chain_link, goods_info } = linkData;
-                        if (goods_info) {
-                            const { skuName = chain_link, imageInfo, commissionInfo, priceInfo } = goods_info;
-                            $.commissionShare = commissionInfo.commissionShare;
-                            $.commission = commissionInfo.couponCommission;
-                            $.price = priceInfo.lowestPrice;
-                            $.skuName = skuName;
-                            $.skuImg = imageInfo.imageList?.[0]?.url;
-                        }
-                        $.shortUrl = chain_link;
-                        $.log("转链完成，短链地址：" + $.shortUrl);
-                    } else {
-                        $.log("转链返回异常：" + $.toStr(data));
-                    }
-                }
-            } catch (e) {
-                $.logErr(e, resp);
-            } finally {
-                resolve();
-            }
-        });
-    });
-}
-/** 发送通知 */
-async function notice() {
-    $.log("发送通知");
-    $.title = $.skuName || "商品信息";
-    $.opts = { "auto-dismiss": 30 };
-
-    $.desc = $.desc || "";
-    if (/u\.jd\.com/.test($.shortUrl)) {
-        $.desc += `预计返利: ¥${(($.price * $.commissionShare) / 100).toFixed(2)}  ${$.commissionShare}%`;
-
-        // 根据平台生成跳转链接
-        if ($.appType === "jdtj") {
-            $.jumpUrl = `openjdlite://virtual?params=${encodeURIComponent(
-                '{"category":"jump","des":"m","url":"' + $.shortUrl + '"}'
-            )}`;
-        } else {
-            $.jumpUrl = `openApp.jdMobile://virtual?params=${encodeURIComponent(
-                '{"category":"jump","des":"m","sourceValue":"babel-act","sourceType":"babel","url":"' + $.shortUrl + '"}'
-            )}`;
-        }
-        $.opts["$open"] = $.jumpUrl;
-    } else {
-        $.desc += "\n预计返利: 暂无";
-        $.log("无佣金商品");
-    }
-    if ($.skuImg) $.opts["$media"] = $.skuImg;
-    if ($.isLoon() && $loon.split(" ")[1].split(".")[0] === "16") {
-        $.opts["$media"] = undefined;
-    }
-    $.msg($.title, $.subt, $.desc, $.opts);
-}
+// 返回结果检查函数
 function checkRes(res, desc = '') {
     if (res.code !== 2000 || !res.result && !res.data) {
         throw new Error(`慢慢买提示您：${res.msg || `${desc}失败`}`);
