@@ -29,10 +29,11 @@ if (url.includes(path1)) {
             $done({});
             return;
         }
-
+      
         const shareUrl = `https://item.jd.com/${match[1]}.html`;
         try {
             const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
+          
             const basic = checkRes(basicRes, '获取 spbh');
 
             const shareRes = await share(basic.spbh, basic.url);
