@@ -5,6 +5,26 @@ const path2 = '/baoliao/center/menu'
 const manmanbuy_key = 'manmanbuy_val';
 const url = $request.url;
 const $ = new Env("京东比价");
+// 获取模块或插件传入参数
+let args = "";
+if (typeof $argument === "string") {
+  args = $argument;
+} else if (typeof $argument === "object" && $argument !== null) {
+  args = Object.entries($argument)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+}
+$.log(`读取参数: ${args}`);
+const argObj = Object.fromEntries(
+args.split("&").map(item => item.split("=").map(decodeURIComponent))
+);
+const isEmpty = (val) => !val || val === "null";
+
+// 参数优先级：模块参数 > BoxJs 本地存储
+const defaultThemeTime = "7-19";
+$.themeTime = !isEmpty(argObj["theme_time"])
+  ? argObj["theme_time"]
+  : $.getdata("theme_time") || defaultThemeTime;
 
 if (url.includes(path2)) {
     const reqbody = $request.body;
