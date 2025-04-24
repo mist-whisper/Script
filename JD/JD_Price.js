@@ -181,14 +181,15 @@ body, table {
 </style>
 <script>
 const setTimeBasedTheme = () => {
-    const themeTime = "${$.themeTime}".split("-");
-    let start = parseInt(themeTime[0]) || 7;
-    let end = parseInt(themeTime[1]) || 19;
-    const currentHour = new Date().getHours();
-    const isDarkTime = currentHour < start || currentHour >= end;
+    if (isDark) {
+          rootElement.setAttribute('data-theme', 'dark');
+        } else {
+          rootElement.setAttribute('data-theme', 'light');
+        }
+      }
     document.documentElement.setAttribute('data-theme', isDarkTime ? 'dark' : 'light');
     console.log('Theme set to:', document.documentElement.getAttribute('data-theme'));
-};
+;
 
 // 图表初始化函数
 const initializeChart = () => {
