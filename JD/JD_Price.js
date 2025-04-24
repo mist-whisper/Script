@@ -15,17 +15,22 @@ if (url.includes(path2)) {
 if (url.includes(path1)) {
     intCryptoJS();
     $.manmanbuy = getck();
+    let url = $request.url;
+    $.appType = url.includes("lite-in.m.jd.com") ? "jdtj" : "jd";
 
     (async () => {
         const match = url.match(/product\/graphext\/(\d+)\.html/);
-         if (!match) return $done({});
-        const shareUrl = `https://item.jd.com/${match[1]}.html`;
-        try {
+        if (!match) {
+            $done({});
+            return;
+        }
+
+        try {     
             //const parseRes = await SiteCommand_parse(shareUrl);
             //const parse = checkRes(parseRes, '获取 stteId');
             //const basicRes = await getItemBasicInfo(parse.stteId, parse.link);
-          
             const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
+
             const basic = checkRes(basicRes, '获取 spbh');
 
             const shareRes = await share(basic.spbh, basic.url);
@@ -41,14 +46,12 @@ if (url.includes(path1)) {
             const html = buildPriceTableHTML(list);
             const newBody = $response.body.replace(/<body[^>]*>/, match => `${match}\n${html}`);
             $done({ body: newBody });
-        } catch (err) {
+        }catch (err) {
             console.warn(err.message || err);
             $done({});
         }
     })();
 }
-
-// 返回结果检查函数
 function checkRes(res, desc = '') {
     if (res.code !== 2000 || !res.result && !res.data) {
         throw new Error(`慢慢买提示您：${res.msg || `${desc}失败`}`);
@@ -178,17 +181,14 @@ body, table {
 </style>
 <script>
 const setTimeBasedTheme = () => {
-      const rootElement = document.documentElement;
-        
-        if (isDark) {
-          rootElement.setAttribute('data-theme', 'dark');
-        } else {
-          rootElement.setAttribute('data-theme', 'light');
-        }
-      }
-      document.addEventListener('DOMContentLoaded', setTimeBasedTheme);
-    </script>
-    ;
+    const themeTime = "${$.themeTime}".split("-");
+    let start = parseInt(themeTime[0]) || 7;
+    let end = parseInt(themeTime[1]) || 19;
+    const currentHour = new Date().getHours();
+    const isDarkTime = currentHour < start || currentHour >= end;
+    document.documentElement.setAttribute('data-theme', isDarkTime ? 'dark' : 'light');
+    console.log('Theme set to:', document.documentElement.getAttribute('data-theme'));
+};
 
 // 图表初始化函数
 const initializeChart = () => {
@@ -411,7 +411,7 @@ async function httpRequest(options) {
         options = options.url ? options : { url: options };
         const _method = options?._method || ('body' in options ? 'post' : 'get');
         const _respType = options?._respType || 'body';
-        const _timeout = options?._timeout || 15000;
+        const _timeout = options?._timeout || 240000;
         const _http = [
             new Promise((_, reject) => setTimeout(() => reject(`⛔️ 请求超时: ${options['url']}`), _timeout)),
             new Promise((resolve, reject) => {
