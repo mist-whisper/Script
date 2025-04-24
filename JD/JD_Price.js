@@ -180,15 +180,29 @@ body, table {
 }
 </style>
 <script>
-const setTimeBasedTheme = () => {
-    const themeTime = "${$.themeTime}".split("-");
-    let start = parseInt(themeTime[0]) || 7;
-    let end = parseInt(themeTime[1]) || 19;
-    const currentHour = new Date().getHours();
-    const isDarkTime = currentHour < start || currentHour >= end;
-    document.documentElement.setAttribute('data-theme', isDarkTime ? 'dark' : 'light');
-    console.log('Theme set to:', document.documentElement.getAttribute('data-theme'));
+const setTheme = () => {
+    // 1. 优先检测系统偏好
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let theme = systemPrefersDark ? 'dark' : 'light';
+
+    // 2. 如果系统未指定（如不支持 prefers-color-scheme），回退到时间判断
+    if (window.matchMedia('(prefers-color-scheme: no-preference)').matches) {
+        const currentHour = new Date().getHours();
+        const [start = 7, end = 19] = "${$.themeTime}".split("-").map(Number);
+        const isDarkTime = (start < end) 
+            ? currentHour < start || currentHour >= end 
+            : currentHour >= start || currentHour < end;
+        theme = isDarkTime ? 'dark' : 'light';
+    }
+
+    // 3. 应用主题
+    document.documentElement.setAttribute('data-theme', theme);
+    console.log('Theme set to:', theme);
 };
+
+// 初始化及监听逻辑
+setTheme();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTheme);
 
 // 图表初始化函数
 const initializeChart = () => {
