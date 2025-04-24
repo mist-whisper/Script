@@ -6,6 +6,11 @@ const manmanbuy_key = 'manmanbuy_val';
 const url = $request.url;
 const $ = new Env("京东比价");
 
+const defaultThemeTime = "7-19";
+$.themeTime = !isEmpty(argObj["theme_time"])
+  ? argObj["theme_time"]
+  : $.getdata("theme_time") || defaultThemeTime;
+
 if (url.includes(path2)) {
     const reqbody = $request.body;
     $.setdata(reqbody, manmanbuy_key);
@@ -24,13 +29,10 @@ if (url.includes(path1)) {
             $done({});
             return;
         }
-        const shareUrl = `https://item.jd.com/${match[1]}.html`;
-        try {     
-            //const parseRes = await SiteCommand_parse(shareUrl);
-            //const parse = checkRes(parseRes, '获取 stteId');
-            //const basicRes = await getItemBasicInfo(parse.stteId, parse.link);
-            const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
 
+        const shareUrl = `https://item.jd.com/${match[1]}.html`;
+        try {
+            const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
             const basic = checkRes(basicRes, '获取 spbh');
 
             const shareRes = await share(basic.spbh, basic.url);
@@ -46,12 +48,13 @@ if (url.includes(path1)) {
             const html = buildPriceTableHTML(list);
             const newBody = $response.body.replace(/<body[^>]*>/, match => `${match}\n${html}`);
             $done({ body: newBody });
-        }catch (err) {
+        } catch (err) {
             console.warn(err.message || err);
             $done({});
         }
     })();
 }
+
 function checkRes(res, desc = '') {
     if (res.code !== 2000 || !res.result && !res.data) {
         throw new Error(`慢慢买提示您：${res.msg || `${desc}失败`}`);
@@ -131,15 +134,15 @@ body, table {
 
 .price-container {
     max-width: 800px;
-    margin: 10px auto;
+    margin: 0 auto; /* 去除上下间距 */
     padding: 10px;
     font-size: 13px;
     font-weight: bold;
     background: var(--background-color);
     color: var(--text-color);
-    border-radius: 12px;
+    border-radius: 0; /* 去除圆角 */
     overflow: hidden;
-    box-shadow: 0 2px 8px var(--shadow-color);
+    box-shadow: none; /* 去除阴影 */
     transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -147,7 +150,7 @@ body, table {
     width: 100%;
     border-collapse: collapse; 
     border-spacing: 0;
-    border-radius: 8px;
+    border-radius: 8px; 
     overflow: hidden;
 }
 
