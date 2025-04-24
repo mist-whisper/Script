@@ -9,7 +9,7 @@ const $ = new Env("京东比价");
 if (url.includes(path2)) {
     const reqbody = $request.body;
     $.setdata(reqbody, manmanbuy_key);
-    $.msg($.name, '🎉🎉🎉\n账号捕获成功！\n点此通知即可复制认证信息~', reqbody);
+    $.msg($.name, '获取ck成功🎉', reqbody);
 }
 
 if (url.includes(path1)) {
