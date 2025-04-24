@@ -6,11 +6,6 @@ const manmanbuy_key = 'manmanbuy_val';
 const url = $request.url;
 const $ = new Env("京东比价");
 
-const defaultThemeTime = "7-19";
-$.themeTime = !isEmpty(argObj["theme_time"])
-  ? argObj["theme_time"]
-  : $.getdata("theme_time") || defaultThemeTime;
-
 if (url.includes(path2)) {
     const reqbody = $request.body;
     $.setdata(reqbody, manmanbuy_key);
