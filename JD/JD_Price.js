@@ -20,7 +20,6 @@ args.split("&").map(item => item.split("=").map(decodeURIComponent))
 );
 const isEmpty = (val) => !val || val === "null";
 
-// 参数优先级：模块参数 > BoxJs 本地存储
 const defaultThemeTime = "7-19";
 $.themeTime = !isEmpty(argObj["theme_time"])
   ? argObj["theme_time"]
