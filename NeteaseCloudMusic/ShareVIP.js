@@ -1,7 +1,7 @@
 // 引用地址：https://raw.githubusercontent.com/anyehttp/quantumult-x/main/headers/wyy.js
 
 let header = $request.headers;
-const isQuanX = typeof $task !== "undefined";
+const isLoon = typeof $task !== "undefined";
 const MConfig = '{"zr4bw6pKFDIZScpo":{"version":1830912,"appver":"9.1.70"},"tPJJnts2H31BZXmp":{"version":3194880,"appver":"2.0.30"},"c0Ve6C0uNl2Am0Rl":{"version":598016,"appver":"1.7.50"},"IuRPVVmc3WWul9fT":{"version":52744192,"appver":"9.1.70"}}';
 
 const User = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 CloudMusic/0.1.1 NeteaseMusic/8.20.30';
@@ -10,7 +10,7 @@ const cookie = 'MUSIC_U=00307B2CF8B0CC0C8D822BEF538D02760A54DA0214E64629E2DF3CB4
 
 
 
-if (isQuanX) {
+if (isLoon) {
   header["MConfig-Info"] = MConfig;
   header["User-Agent"] = User;
   header["Cookie"] = cookie;
