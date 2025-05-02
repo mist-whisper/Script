@@ -1,29 +1,20 @@
 // 引用地址：https://github.com/githubdulong/Script/blob/master/jd_price1.js
 
 const path1 = '/product/graphext/';
-const path2 = '/baoliao/center/menu'
+const path2 = '/baoliao/center/menu';
 const manmanbuy_key = 'manmanbuy_val';
 const url = $request.url;
 const $ = new Env("京东比价");
+
 // 获取模块或插件传入参数
-let args = "";
-if (typeof $argument === "string") {
-  args = $argument;
-} else if (typeof $argument === "object" && $argument !== null) {
-  args = Object.entries($argument)
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join("&");
-}
+let args = (typeof $argument === "string") ? $argument : (typeof $argument === "object" && $argument !== null) ? Object.entries($argument).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&") : "";
 $.log(`读取参数: ${args}`);
-const argObj = Object.fromEntries(
-args.split("&").map(item => item.split("=").map(decodeURIComponent))
-);
+const argObj = Object.fromEntries(args.split("&").map(item => item.split("=").map(decodeURIComponent)));
 const isEmpty = (val) => !val || val === "null";
 
+// 参数优先级：模块参数 > BoxJs 本地存储
 const defaultThemeTime = "7-19";
-$.themeTime = !isEmpty(argObj["theme_time"])
-  ? argObj["theme_time"]
-  : $.getdata("theme_time") || defaultThemeTime;
+$.themeTime = !isEmpty(argObj["theme_time"]) ? argObj["theme_time"] : $.getdata("theme_time") || defaultThemeTime;
 
 if (url.includes(path2)) {
     const reqbody = $request.body;
@@ -43,11 +34,10 @@ if (url.includes(path1)) {
             $done({});
             return;
         }
-      
+
         const shareUrl = `https://item.jd.com/${match[1]}.html`;
         try {
-            const basicRes = await getItemBasicInfo_v1(shareUrl); //V1
-          
+            const basicRes = await getItemBasicInfo_v1(shareUrl); // V1
             const basic = checkRes(basicRes, '获取 spbh');
 
             const shareRes = await share(basic.spbh, basic.url);
@@ -78,46 +68,32 @@ function checkRes(res, desc = '') {
 }
 
 function buildPriceTableHTML(priceList) {
-    // 校验 priceList
+
     if (!Array.isArray(priceList) || priceList.length === 0) {
         console.warn('priceList is empty or invalid, returning empty table');
-        return `
-<div class="price-container">
-  <table class="price-table">
-    <thead><tr><th>类型</th><th>日期</th><th>价格</th><th>差价</th></tr></thead>
-    <tbody><tr><td colspan="4">暂无数据</td></tr></tbody>
-  </table>
-</div>`;
+        return `<div class="price-container">
+                  <table class="price-table">
+                    <thead><tr><th>类型</th><th>日期</th><th>价格</th><th>差价</th></tr></thead>
+                    <tbody><tr><td colspan="4">暂无数据</td></tr></tbody>
+                  </table>
+                </div>`;
     }
 
     const rows = priceList.map(item => {
         let { Name: name, Date: date, Price: price = '', Difference: diff = '' } = item;
-        if (name === '当前到手价') {
-            // 容错处理 $.time
-            date = typeof $.time === 'function' ? $.time('yyyy-MM-dd') : new Date().toISOString().split('T')[0];
-            diff = '仅供参考';
-        } else {
-            date = date || '-';
-        }
-        let diffClass = '';
-        if (diff.startsWith('↑')) diffClass = 'up';
-        else if (diff.startsWith('↓')) diffClass = 'down';
+        date = name === '当前到手价' ? (typeof $.time === 'function' ? $.time('yyyy-MM-dd') : new Date().toISOString().split('T')[0]) : date || '-';
+        let diffClass = (diff.startsWith('↑') ? 'up' : (diff.startsWith('↓') ? 'down' : ''));
         return `<tr><td>${name}</td><td>${date}</td><td>${price}</td><td class="price-diff ${diffClass}">${diff}</td></tr>`;
     }).join('');
 
-    // 提取可用于图表的数据（过滤空价格）
-    const chartData = priceList
-        .filter(i => i.Price && !isNaN(parseFloat(String(i.Price).replace(/[¥\s]/g, ''))))
-        .map(i => ({
-            date: i.Name === '当前到手价' ? (typeof $.time === 'function' ? $.time('yyyy-MM-dd') : new Date().toISOString().split('T')[0]) : (i.Date || '-'),
-            price: parseFloat(String(i.Price).replace(/[¥\s]/g, ''))
-        }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const chartData = priceList.filter(i => i.Price && !isNaN(parseFloat(String(i.Price).replace(/[¥\s]/g, '')))).map(i => ({
+        date: i.Name === '当前到手价' ? (typeof $.time === 'function' ? $.time('yyyy-MM-dd') : new Date().toISOString().split('T')[0]) : (i.Date || '-'),
+        price: parseFloat(String(i.Price).replace(/[¥\s]/g, ''))
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const labels = chartData.map(i => i.date);
     const prices = chartData.map(i => i.price);
 
-    // 仅返回 HTML 结构，CSS 和 JS 逻辑分离
     return `
 <div class="price-container">
   <table class="price-table">
@@ -149,15 +125,15 @@ body, table {
 
 .price-container {
     max-width: 800px;
-    margin: 0 auto; /* 去除上下间距 */
+    margin: 0 auto; 
     padding: 10px;
     font-size: 13px;
     font-weight: bold;
     background: var(--background-color);
     color: var(--text-color);
-    border-radius: 0; /* 去除圆角 */
+    border-radius: 0; 
     overflow: hidden;
-    box-shadow: none; /* 去除阴影 */
+    box-shadow: none; 
     transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -374,10 +350,7 @@ async function SiteCommand_parse(searchKey) {
 // spbh jf_url V1
 async function getItemBasicInfo_v1(link) {
     const url = 'https://apapia-history-weblogic.manmanbuy.com/basic/getItemBasicInfo';
-    const payload = {
-        methodName: "getHistoryInfoJava",
-        searchKey: link//https://item.m.jd.com/product/100131792509.html
-    };
+    const payload = { methodName: "getHistoryInfoJava", searchKey: link };
     const opt = get_options(payload, url);
     return await httpRequest(opt);
 }
