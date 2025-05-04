@@ -13,6 +13,12 @@ try {
             "media-url": imageUrl,
             "open-url": imageUrl
         });
+
+        var attach = {  
+                "openUrl":"loon://switch",
+                "mediaUrl":imageUrl,
+                "clipboard":"图片通知已接收"
+        }
         // 调用$notification.post方法发送通知
             $notification.post("图片通知", "查看图片", "点击查看详情", attach);
     }
