@@ -172,9 +172,8 @@ if (url.indexOf("/chat/limitInfo") != -1) {
             card.iconConfig = null;
         }
     });
-} 
 
-let body = $response.body;
+} else if (url.indexOf("/snapchat/url ") != -1) {
 try {
     let obj = JSON.parse(body);
     let imageUrl = obj?.data?.url;
@@ -197,5 +196,5 @@ try {
 } catch (e) {
     console.log("处理图片预览出错：" + e);
 }
-    
+}    
 $done({ body });
