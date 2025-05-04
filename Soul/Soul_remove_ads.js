@@ -1,48 +1,179 @@
-/*
-脚本引用 https://raw.githubusercontent.com/RuCu6/Loon/main/Scripts/soul.js
-*/
-// 2024-10-15 10:20
+// 引用地址：https://klraw.pages.dev/kelv1n1n/script/refs/heads/main/js/soul.js?token=209863
 
-const url = $request.url;
-if (!$response || !$response.body) $done({});
-let obj = JSON.parse($response.body);
+let url = $request.url;
+let body = $response.body;
+let obj = JSON.parse(body);
 
-if (url.includes("/chat/limitInfo")) {
-  // 私聊限制
-  if (obj?.data?.limit) {
+//console.log(resultArray);
+
+if (url.indexOf("/chat/limitInfo") != -1) {
+    delete obj.data.subMsg;
+    delete obj.data.extMsg;
+    delete obj.data.abValue;
+    delete obj.data.freeEquityStatus;
+    delete obj.data.msg;
+    delete obj.data.remainFreeCount;
+    delete obj.data.type;
     obj.data.limit = false;
-  }
-} else if (url.includes("/v6/planet/config")) {
-  const gamesToRemove = ["异世界回响", "狼人魅影", "梦想海岛王", "幻想星球", "爆弹喵", "星球实验室", "兴趣群组", "群聊派对"];
-  if (obj?.data?.gameInfo?.gameCards?.length > 0) {
-    obj.data.gameInfo.gameCards = obj.data.gameInfo.gameCards.filter((card) => !gamesToRemove.includes(card.title));
-  }
-  if (obj.data?.coreCards?.length > 0) {
-    obj.data.coreCards = obj.data.coreCards.filter((card) => !gamesToRemove.includes(card.title));
-    obj.data.coreCards.forEach((card) => {
-      if (card?.secondCards?.length > 0) {
-        card.secondCards = card.secondCards.filter((sc) => !gamesToRemove.includes(sc.title));
-      }
-    });
-    obj.data.coreCards = obj.data.coreCards.map((card) => {
-      if (card.style === 2) {
+} else if (url.indexOf("/planet/config") != -1){
+    let soulMatch = $argument.soulMatch;
+    let voiceMatch = $argument.voiceMatch;
+    let partyMatch = $argument.partyMatch;
+    let masked = $argument.masked;
+    let maskedMatch = $argument.maskedMatch;
+    let planet = $argument.planet;
+
+    const sortIdMap = {
+        soulMatch: 1,
+        voiceMatch: 2,
+        partyMatch: 3,
+        masked: 4,
+        maskedMatch: 9,
+        planet: 10
+    };
+
+    let resultArray = [];
+    if (soulMatch) {
+        resultArray.push(sortIdMap.soulMatch);
+    }
+    if (voiceMatch) {
+        resultArray.push(sortIdMap.voiceMatch);
+    }
+    if (partyMatch) {
+        resultArray.push(sortIdMap.partyMatch);
+    }
+    if (masked) {
+        resultArray.push(sortIdMap.masked);
+    }
+    if (maskedMatch) {
+        resultArray.push(sortIdMap.maskedMatch);
+    }
+    if (planet) {
+        resultArray.push(sortIdMap.planet);
+    }
+    
+    obj.data.showRedMind = false;
+    obj.data.chatRoomInfo.showChatRoom = false;
+    obj.data.gameInfo.showGameCard = false;
+    // 星球按钮入口
+    //const buttonArr = [1, 3];
+    //obj.data.coreCards = obj.data.coreCards.filter(card => buttonArr.includes(card.sortId));
+    obj.data.coreCards = obj.data.coreCards.filter(card => resultArray.includes(card.sortId));
+    obj.data.gameInfo.gameCards = [];
+    obj.data.coreCards.forEach(card => {
+        if (card.hasOwnProperty('showLuckyBag') && card.showLuckyBag === true) {
+          card.showLuckyBag = false;
+        }
+        card.showLuckyBag = false;
+        card.showRedMind = false;
         card.style = 1;
-      }
-      return card;
+        delete card.bgImg;
+        delete card.iconUrl;
     });
-  }
-} else if (url.includes("/homepage/diamond/position/info")) {
-  if (obj?.data?.length > 0) {
-    obj.data = obj.data.filter((item) => !["GIFT_WALL", "PET_PLANET", "SHOP"]?.includes(item.code));
-  }
-} else if (url.includes("/chatroom/chatClassifyRoomList")) {
-  if (obj?.data?.roomList?.length > 0) {
-    obj.data.roomList = [];
-  }
-} else if (url.includes("/post/recSquare/subTabs")) {
-  if (obj?.data?.length > 0) {
-    obj.data = obj.data.filter((item) => [2, 6, 7].includes(item.tabType));
-  }
+
+    obj.data.showLuckyBag = false;
+    //  屏蔽优惠卡的图片，但是入口还在
+    //delete obj.data.luckyBagEntranceImg;
+
+} else if (url.indexOf("/chatroom/chatClassifyRoomList") != -1) {
+    // 派对中间广告横幅
+    obj.data.positionContentRespList = [];
+    //console.log(JSON.stringify(obj.data.positionContentRespList));
+    // 过滤掉派对人数大于2的
+    //obj.data.roomList = obj.data.roomList.filter(i => i.roomerNum < 2);
+} else if (url.indexOf("/square/header/tabs") != -1) {
+    obj.data.forEach(card => {
+        card.unreadFlag = 0;
+    });
+    // 保留tab
+    obj.data = obj.data.filter(item => item.pageId === "PostSquare_Recommend");
+    //obj.data = [];
+} else if (url.indexOf("/homepage/metrics") != -1) {
+    obj.data.recentViewNum = 0;
+    obj.data.showTipsCard = false;
+    obj.data.showMetric = false;
+    obj.data.hasHomePageLiked = false;
+    if (obj && obj.data && obj.data.homePageLikedMetric){
+      obj.data.homePageLikedMetric.addNum = 0;
+      obj.data.homePageLikedMetric.likedTotalNum = 0;
+      obj.data.homePageLikedMetric.hasShowHistoryDynamic = false;
+    }
+    //obj.data.homePageLikedMetric.likedTotalNum = 0;
+    //obj.data.homePageLikedMetric.hasShowHistoryDynamic = false;
+} else if (url.indexOf("relation/guideUserList") != -1) {
+    obj.data.userDTOList = [];
+} else if (url.indexOf("/homepage/tabs/v2") != -1) {
+    obj.data.selectedTagPool = {};
+    const tab = ["STAR_TRAILS"];
+    obj.data.headTabDTOList = obj.data.headTabDTOList.filter(t => !tab.includes(t.tabCode));
+} else if (url.indexOf("/chatroom/getRoomTagInfo") != -1) {
+    let hot = $argument.hot;
+    let all = $argument.all;
+    let emotion = $argument.emotion;
+    let personal = $argument.personal;
+    let play = $argument.play;
+    let interest = $argument.interest;
+    let argue = $argument.argue;
+    let story = $argument.story;
+    let chat = $argument.chat;
+    let heart = $argument.heart;
+
+    // 每个变量对应的 id
+    const idMap = {
+        hot: 11,
+        all: 0,
+        emotion: 43,
+        personal: 44,
+        play: 12,
+        interest: 10,
+        argue: 6,
+        story: 5,
+        chat: 4,
+        heart: 2
+    };
+
+    // 创建一个空数组用于存储符合条件的 id
+    let resultArray = [];
+
+    // 检查每个变量，如果为 true 则将对应的 id 添加到结果数组中
+    if (hot) {
+        resultArray.push(idMap.hot);
+    }
+    if (all) {
+        resultArray.push(idMap.all);
+    }
+    if (emotion) {
+        resultArray.push(idMap.emotion);
+    }
+    if (personal) {
+        resultArray.push(idMap.personal);
+    }
+    if (play) {
+        resultArray.push(idMap.play);
+    }
+    if (interest) {
+        resultArray.push(idMap.interest);
+    }
+    if (argue) {
+        resultArray.push(idMap.argue);
+    }
+    if (story) {
+        resultArray.push(idMap.story);
+    }
+    if (chat) {
+        resultArray.push(idMap.chat);
+    }
+    if (heart) {
+        resultArray.push(idMap.heart);
+    }
+    obj.data.res = obj.data.res.filter(t => resultArray.includes(t.id));
+    obj.data.res.forEach(card => {
+        if (card.iconConfig != null) {
+            card.iconConfig = null;
+        }
+    });
 }
 
-$done({ body: JSON.stringify(obj) });
+
+body = JSON.stringify(obj);
+$done({body});
