@@ -13,6 +13,8 @@ try {
             "media-url": imageUrl,
             "open-url": imageUrl
         });
+        // 调用$notification.post方法发送通知
+            $notification.post("图片通知", "查看图片", "点击查看详情", attach);
     }
 } catch (e) {
     console.log("处理图片预览出错：" + e);
