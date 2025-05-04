@@ -9,7 +9,7 @@ try {
     if (imageUrl && typeof imageUrl === 'string') {
         console.log("图片地址: " + imageUrl);
 
-        $notify("图片预览", "点击跳转浏览器", imageUrl, {
+         $notification.post("图片预览", "点击跳转浏览器", imageUrl, {
             "media-url": imageUrl,
             "open-url": imageUrl
         });
@@ -20,7 +20,7 @@ try {
                 "clipboard":"图片通知已接收"
         }
         // 调用$notification.post方法发送通知
-            $notification.post("图片通知", "查看图片", "点击查看详情", attach);
+           // $notification.post("图片通知", "查看图片", "点击查看详情", attach);
     }
 } catch (e) {
     console.log("处理图片预览出错：" + e);
