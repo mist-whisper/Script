@@ -197,6 +197,5 @@ try {
 } catch (e) {
     console.log("处理图片预览出错：" + e);
 }
-    
+}    
 $done({ body });
-}
