@@ -172,8 +172,31 @@ if (url.indexOf("/chat/limitInfo") != -1) {
             card.iconConfig = null;
         }
     });
+} else if (url.indexOf("/snapchat/url ") != -1) {
+    
+let body = $response.body;
+try {
+    let obj = JSON.parse(body);
+    let imageUrl = obj?.data?.url;
+
+    if (imageUrl && typeof imageUrl === 'string') {
+        console.log("图片地址: " + imageUrl);
+
+         $notification.post("图片预览", "点击跳转浏览器", imageUrl, {
+            "media-url": imageUrl,
+            "open-url": imageUrl
+        });
+
+        var attach = {  
+                "openUrl":"loon://switch",
+                "mediaUrl":imageUrl,
+                "clipboard":"图片通知已接收"
+        }
+    }      
+    
+} catch (e) {
+    console.log("处理图片预览出错：" + e);
 }
-
-
-body = JSON.stringify(obj);
-$done({body});
+    
+$done({ body });
+}
