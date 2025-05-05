@@ -2,7 +2,7 @@
 
 let header = $request.headers;
 const isLoon = typeof $task !== "undefined";
-const MConfig = '{"zr4bw6pKFDIZScpo":{"version":1830912,"appver":"9.1.70"},"tPJJnts2H31BZXmp":{"version":3194880,"appver":"2.0.30"},"c0Ve6C0uNl2Am0Rl":{"version":598016,"appver":"1.7.50"},"IuRPVVmc3WWul9fT":{"version":52744192,"appver":"9.1.70"}}';
+const MConfig = '{"IuRPVVmc3WWul9fT":{"version":52744192,"appver":"9.1.70"},"zr4bw6pKFDIZScpo":{"version":1830912,"appver":"9.1.70"},"tPJJnts2H31BZXmp":{"version":3194880,"appver":"2.0.30"},"c0Ve6C0uNl2Am0Rl":{"version":598016,"appver":"1.7.50"}}';
 
 const User = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 CloudMusic/0.1.1 NeteaseMusic/8.20.30';
 
