@@ -1,0 +1,4 @@
+#!name = 测试
+
+[Script]
+^https:\/\/api\.xiaoyuzhoufm\.com\/v1\/discovery-feed\/list script-path = https://raw.githubusercontent.com/mist-whisper/Script/refs/heads/master/Beta/test.js, tag = test
