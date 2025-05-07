@@ -1,4 +1,17 @@
 #!name = 测试
+#!desc = 移除一些小广告，优化一些小功能。
+#!openUrl = 
+#!author = RuCu6[https://github.com/RuCu6],fishdown[https://github.com/fishdown],wish[https://github.com/mist-whisper],Repcz[https://github.com/Repcz],kelv1n1n[https://github.com/kelv1n1n]
+#!tag = 去广告增强
+#!system = iOS iPadOS
+#!system_version = 15
+#!loon_version = 3.2.9(837)
+#!homepage = https://github.com/mist-whisper/Loon/blob/master/README.md
+#!icon = https://raw.githubusercontent.com/mist-whisper/Icon/master/MyIcon/BlockAds.png
+#!date = 2025-05-06 20:09:00
 
 [Script]
 ^https:\/\/api\.xiaoyuzhoufm\.com\/v1\/discovery-feed\/list script-path = https://raw.githubusercontent.com/mist-whisper/Script/refs/heads/master/Beta/test.js, tag = test
+
+[mitm]
+host=api.xiaoyuzhoufm.com
