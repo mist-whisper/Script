@@ -1,17 +1,5 @@
-// 引用地址：https://raw.githubusercontent.com/Guding88/Script/refs/heads/main/Subtrack.js
+// 引用地址：https://raw.githubusercontent.com/Guding88/Script/main/Subtrack.js
 
-/*
-
-Subtrack：https://apps.apple.com/app/id1519946553
-
-[rewrite_local]
-^https?:\/\/api\.revenuecat\.com\/v1\/(subscribers\/[^\/]+$|receipts$) url script-response-body https://raw.githubusercontent.com/Guding88/Script/main/Subtrack.js
-^https?:\/\/api\.revenuecat\.com\/v1\/(subscribers\/[^\/]+$|receipts$) url script-request-header https://raw.githubusercontent.com/Guding88/Script/main/Subtrack.js
-
-[MITM]
-hostname = api.revenuecat.com
-
-*/
 const guding = {};
 const guding6 = JSON.parse(typeof $response != "undefined" && $response.body || null);
 if (typeof $response == "undefined") {
