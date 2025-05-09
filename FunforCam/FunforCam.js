@@ -1,17 +1,5 @@
-引用地址：https://raw.githubusercontent.com/Guding88/Script/refs/heads/main/fangfuxiangji.js
+// 引用地址：https://raw.githubusercontent.com/Guding88/Script/main/fangfuxiangji.js
 
-/*
-
-方弗相机：https://apps.apple.com/app/id1621425556
-
-[rewrite_local]
-^https?:\/\/api\.revenuecat\.com\/v1\/(subscribers\/[^\/]+$|receipts$) url script-response-body https://raw.githubusercontent.com/Guding88/Script/main/fangfuxiangji.js
-^https?:\/\/api\.revenuecat\.com\/v1\/(subscribers\/[^\/]+$|receipts$) url script-request-header https://raw.githubusercontent.com/Guding88/Script/main/fangfuxiangji.js
-
-[MITM]
-hostname = api.revenuecat.com
-
-*/
 const guding = {};
 const guding6 = JSON.parse(typeof $response != "undefined" && $response.body || null);
 if (typeof $response == "undefined") {
