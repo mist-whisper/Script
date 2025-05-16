@@ -1,12 +1,5 @@
 // 引用地址：https://raw.githubusercontent.com/fmz200/wool_scripts/refs/heads/main/Scripts/xiaohongshu/xiaohongshu.js
 
-/**
- * @author fmz200
- * @function 小红书去广告、净化、解除下载限制、画质增强等
- * @date 2025-03-22 22:20:00
- * @quote @RuCu6
- */
-
 const $ = new Env('小红书');
 const url = $request.url;
 let rsp_body = $response.body;
@@ -185,12 +178,12 @@ if (url.includes("/v4/note/videofeed")) {
       }
       // 存储无水印视频链接
       if (item?.id && item.video_info_v2?.media?.stream?.h265?.length > 0 && item.video_info_v2.media.stream.h265[0].master_url) {
-  let myData = {
-    id: item.id,
-    url: item.video_info_v2.media.stream.h265[0].master_url
-  };
-  newDatas.push(myData);
-}
+        let myData = {
+          id: item.id,
+          url: item.video_info_v2.media.stream.h265[0].master_url
+        };
+        newDatas.push(myData);
+      }
     }
     $.setdata(JSON.stringify(newDatas), "redBookVideoFeed"); // 普通视频 写入持久化存储
   }
@@ -200,12 +193,12 @@ if (url.includes("/v4/note/videofeed")) {
     if (obj?.data?.length > 0) {
       for (let item of obj.data) {
         if (item?.id && item.video_info_v2?.media?.stream?.h265?.length > 0 && item.video_info_v2.media.stream.h265[0].master_url) {
-  let myData = {
-    id: item.id,
-    url: item.video_info_v2.media.stream.h265[0].master_url
-  };
-  newDatas.push(myData);
-}
+          let myData = {
+            id: item.id,
+            url: item.video_info_v2.media.stream.h265[0].master_url
+          };
+          unlockDatas.push(myData);
+        }
       }
     }
     $.setdata(JSON.stringify(unlockDatas), "redBookVideoFeedUnlock"); // 禁止保存的视频 写入持久化存储
@@ -403,6 +396,11 @@ $done({body: JSON.stringify(obj)});
 
 // 小红书画质增强：加载2K分辨率的图片
 function imageEnhance(jsonStr) {
+  if (!jsonStr) {
+    console.error("jsonStr is undefined or null");
+    return [];
+  }
+
   const imageQuality = $.getdata("fmz200.xiaohongshu.imageQuality");
   console.log(`Image Quality: ${imageQuality}`);
   if (imageQuality === "original") { // 原始分辨率，PNG格式的图片，占用空间比较大
@@ -418,7 +416,12 @@ function imageEnhance(jsonStr) {
   }
   console.log('图片画质增强完成✅');
 
-  return JSON.parse(jsonStr);
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error("JSON parsing error: ", e);
+    return [];
+  }
 }
 
 function replaceUrlContent(collectionA, collectionB) {
