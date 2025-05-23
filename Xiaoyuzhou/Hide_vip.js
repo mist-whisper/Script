@@ -1,17 +1,23 @@
-// 脚本名称：小宇宙会员屏蔽
-// 作用：清空会员推广字段
+// 小宇宙会员推广移除脚本
+// URL: https://api.xiaoyuzhoufm.com/v1/membership/platform
 
-let body = JSON.parse($response.body);
+console.log("🎯 小宇宙会员屏蔽脚本执行");
 
-// 清空 messages 内容
-body.data.messages = [];
+try {
+  let body = JSON.parse($response.body);
 
-// 隐藏开通按钮和链接
-body.data.button = {};
-body.data.link = "";
-body.data.showRenewal = false;
+  // 安全检查
+  if (body?.data) {
+    body.data.messages = [];
+    body.data.button = {};
+    body.data.link = "";
+    body.data.showRenewal = false;
+    body.data.memberType = "VIP"; // 可选：伪装已开会员
+  }
 
-// 强制标记为会员（可选）
-body.data.memberType = "VIP";
+  $done({ body: JSON.stringify(body) });
 
-$done({ body: JSON.stringify(body) });
+} catch (e) {
+  console.log("❌ 脚本执行失败:", e);
+  $done({});
+}
