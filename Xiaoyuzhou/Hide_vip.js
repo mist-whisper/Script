@@ -1,24 +1,16 @@
-// 小宇宙会员 banner 屏蔽脚本
-// URL: https://api.xiaoyuzhoufm.com/v1/membership/platform
+// Loon - HTTP-RESPONSE
+// 匹配接口：https://api.xiaoyuzhoufm.com/v1/membership/platform
 
-console.log("✅ 小宇宙会员脚本已触发");
+let body = $response.body;
+let obj = JSON.parse(body);
 
-try {
-  let body = JSON.parse($response.body);
-
-  if (body?.data) {
-    body.data.messages = [];
-    body.data.button = {};
-    body.data.link = "";
-    body.data.showRenewal = false;
-
-    // 可选：伪装成已开会员
-   //  body.data.memberType = "VIP";
-  }
-
-  $done({ body: JSON.stringify(body) });
-
-} catch (e) {
-  console.log("❌ 小宇宙脚本异常:", e);
-  $done({});
+// 判断 data 是否存在并清空会员相关内容
+if (obj?.data) {
+  obj.data.messages = [];
+  obj.data.memberType = "NONE";
+  obj.data.showRenewal = false;
+  obj.data.button = null;
+  obj.data.link = "";
 }
+
+$done({ body: JSON.stringify(obj) });
