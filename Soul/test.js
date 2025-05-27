@@ -1,39 +1,39 @@
-/*
-  [Script]
-  ^https?:\/\/api\.example\.com\/global-config url script-response-body remove-ai-config.loon.js
-  (根据实际API地址修改域名和路径)
-*/
+// Loon/Surge/QuanX 通用格式，拦截响应并移除 AI 相关字段
+// 脚本用途：移除 aigc、ai_partner、AiReading 等字段
 
-// 定义需要移除的 AI 相关配置键
-const AI_KEYS = new Set([
-  "chat_ai_partner_placeholder",
-  "chat_aigc_identity_config",
-  "aigc_identity_config",
-  "chat_aigc_open_max_time",
-  "chat_aigc_2_hide_beta_icon",
-  "ai_patainer_config_switch",
-  "chatlist_virtualman_session_entrance_info",
-  "officialTagAiConfig"
-]);
+// ==UserScript==
+// @name         Remove AI Configs
+// @namespace    http://yourdomain.com
+// @version      1.0
+// @description  移除AI相关配置和免责声明，保留其他功能
+// @author       GPT
+// ==/UserScript==
 
-// 处理响应内容
-if (typeof $response !== "undefined") {
-  let body = JSON.parse($response.body);
-  
-  // 删除 globalConfig 中的 AI 键
-  if (body.data?.globalConfig) {
-    Object.keys(body.data.globalConfig).forEach(key => {
-      if (AI_KEYS.has(key)) {
-        delete body.data.globalConfig[key];
+if ($response?.body) {
+  try {
+    let obj = JSON.parse($response.body);
+    const gc = obj?.data?.globalConfig;
+
+    if (gc && typeof gc === 'object') {
+      const patterns = [
+        /aigc/i,
+        /ai_partner/i,
+        /officialTagAiConfig/i,
+        /feature_ios_AiReading_Control/i,
+      ];
+
+      for (const key of Object.keys(gc)) {
+        if (patterns.some(p => p.test(key))) {
+          delete gc[key];
+        }
       }
-    });
+    }
+
+    $done({ body: JSON.stringify(obj) });
+  } catch (e) {
+    console.log('Error cleaning AI configs:', e);
+    $done({});
   }
-  
-  // 可选：关闭相关开关（如果需要保留键）
-  // body.data.globalConfig.ai_patainer_config_switch = "0"; 
-  
-  // 返回修改后的内容
-  $done({ body: JSON.stringify(body) });
 } else {
   $done({});
 }
