@@ -24,7 +24,7 @@ if (isNetEase) {
     
     console.log("✅ 网易云音乐会员解锁成功🎉");
     $done({ headers: header });
-  ｝
+  }
 } else {
   $done({});
 }
