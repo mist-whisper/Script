@@ -3,10 +3,11 @@
   const headers = $request.headers;
   const isNetEase = url.includes("/interface") && url.includes(".music.163.com/");
 
-  if (!isNetEase) return $done({}); // 非目标请求，跳过处理
+  if (!isNetEase) return $done({});
 
-  // 参数解析函数：将 "key1=val1&key2=val2" 转成对象
+  // 参数解析函数
   function parseArguments(argStr) {
+    if (typeof argStr !== "string") return {};  // 关键修复点
     return Object.fromEntries(
       argStr
         .split("&")
@@ -16,7 +17,7 @@
     );
   }
 
-  const args = parseArguments($argument || "");
+  const args = parseArguments($argument);
   const cookie = args.Cookie;
   const mconfig = args.MConfigInfo;
   const userAgent = args.UserAgent;
@@ -27,10 +28,9 @@
       "参数缺失",
       "请在脚本参数中设置 Cookie、MConfigInfo、UserAgent"
     );
-    return $done({}); // 参数不全，终止请求处理
+    return $done({});
   }
 
-  // 注入请求头
   headers["cookie"] = cookie;
   headers["mconfig-info"] = mconfig;
   headers["user-agent"] = userAgent;
