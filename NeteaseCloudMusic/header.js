@@ -1,3 +1,50 @@
+(function () {
+  const url = $request.url;
+  const headers = $request.headers;
+  const isNetEase = url.includes("/interface") && url.includes(".music.163.com/");
+
+  if (!isNetEase) return $done({}); // 非目标请求，跳过处理
+
+  // 参数解析函数：将 "key1=val1&key2=val2" 转成对象
+  function parseArguments(argStr) {
+    return Object.fromEntries(
+      argStr
+        .split("&")
+        .map(kv => kv.split("="))
+        .filter(kv => kv.length === 2)
+        .map(([k, v]) => [k, decodeURIComponent(v)])
+    );
+  }
+
+  const args = parseArguments($argument || "");
+  const cookie = args.Cookie;
+  const mconfig = args.MConfigInfo;
+  const userAgent = args.UserAgent;
+
+  if (!cookie || !mconfig || !userAgent) {
+    $notification.post(
+      "网易云音乐配置错误",
+      "参数缺失",
+      "请在脚本参数中设置 Cookie、MConfigInfo、UserAgent"
+    );
+    return $done({}); // 参数不全，终止请求处理
+  }
+
+  // 注入请求头
+  headers["cookie"] = cookie;
+  headers["mconfig-info"] = mconfig;
+  headers["user-agent"] = userAgent;
+
+  $done({ headers });
+})();
+
+
+
+
+
+
+
+/*
 const url = $request.url;
 const header = $request.headers;
 const isNetEase = url.includes("/interface") && url.includes(".music.163.com/");
@@ -26,6 +73,8 @@ if (isNetEase) {
 } else {
   $done({});
 }
+*/
+
 
 /*
 const url = $request.url;
