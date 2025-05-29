@@ -1,28 +1,34 @@
-// clean_home_feed.js：净化首页模块，包括播客寻宝、分类、朋友在听、付费精品节目单等
+// 净化首页模块，包括播客寻宝、分类、朋友在听、付费精品节目单等
+
+const DEBUG = false; // 设置为 true 启用调试日志
 
 let body = $response.body;
 
-// 防止非 JSON 内容导致 JSON.parse 崩溃
+if (DEBUG) console.log("clean_home_feed.js 响应体长度: " + body.length);
+
+// 判断是否为 JSON 响应
 if (body.startsWith("{") || body.startsWith("[")) {
   try {
     let obj = JSON.parse(body);
 
-    // 待过滤的标题关键词
     const filteredTitles = ["分类", "朋友在听", "新节目广场", "付费精品节目单"];
 
     if (Array.isArray(obj.data)) {
       obj.data = obj.data.filter(module => {
-        // 只处理顶部横向卡片类型
         if (module.type === "DISCOVERY_HEADER" && Array.isArray(module.data)) {
           module.data = module.data.filter(item => {
             const title = item.rightContent?.text || "";
             const url = item.url || "";
             const titleOk = !filteredTitles.includes(title);
             const urlOk = !url.includes("podcast-newforce-collection");
+
+            if (DEBUG && (!titleOk || !urlOk)) {
+              console.log(`已移除卡片：${title} | ${url}`);
+            }
+
             return titleOk && urlOk;
           });
 
-          // 如果过滤后为空，移除整个模块
           return module.data.length > 0;
         }
 
@@ -32,10 +38,12 @@ if (body.startsWith("{") || body.startsWith("[")) {
 
     $done({ body: JSON.stringify(obj) });
   } catch (e) {
-    console.log("解析 JSON 时出错: " + e.message);
+    if (DEBUG) console.log("解析 JSON 失败：" + e.message);
     $done({});
   }
 } else {
-  console.log("返回内容不是 JSON，内容如下：\n" + body);
+  if (DEBUG && body.includes("401 Authorization Required")) {
+    console.log("接口返回 401 未授权 HTML");
+  }
   $done({});
 }
