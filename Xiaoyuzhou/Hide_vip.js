@@ -1,39 +1,37 @@
 /**
- * remove_member.js
+ * remove_member_dom.js
  * Loon Script-Response-Body 脚本
  *
- * 功能：拦截小宇宙会员接口的 JSON 响应，删除整个 data 模块（会员权益卡片等）  
- * 使用方式：在 Loon 配置的 [Script] 段添加对应的 URL 规则，指向本脚本文件
+ * 功能：在 HTML 页面响应里注入小段 JS，页面加载时及动态插入时都把残余的会员卡片 DOM 节点 remove()
+ * 规则示例：^https?:\/\/h5\.xiaoyuzhoufm\.com\/podcast.* url script-response-body remove_member_dom.js
  */
-
 (function() {
-  // 1. 获取原始响应体字符串
   let body = $response.body;
-
-  try {
-    // 2. 将 JSON 字符串解析成 JS 对象
-    let obj = JSON.parse(body);
-
-    // 3. 检查 data 字段是否存在
-    if (obj.data) {
-      // —— 整块移除会员模块 —— 
-      delete obj.data;
-
-      // —— 或者按需精细化删除字段 —— 
-      // delete obj.data.messages;
-      // delete obj.data.button;
-      // delete obj.data.link;
-      // delete obj.data.showRenewal;
-      // delete obj.data.memberType;
+  
+  // 要注入的前端脚本
+  const inject = `
+<script>
+(function() {
+  // 移除逻辑：找出可能的卡片容器并删掉
+  function rm() {
+    var sel = document.querySelector('.member-module, .vip-banner, [data-component="vip"], .podcast-member-card');
+    if (sel) {
+      sel.remove();
+      console.log('会员卡片 DOM 已移除');
     }
-
-    // 4. 把修改后的对象重新 stringify 为 JSON 字符串
-    body = JSON.stringify(obj);
-  } catch (e) {
-    // JSON 解析或操作失败时，打印警告（不影响页面正常加载原始响应）
-    console.warn("remove_member.js 脚本执行失败：", e);
   }
+  // DOMReady 之后执行一次
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', rm);
+  } else {
+    rm();
+  }
+  // 监听后续动态插入
+  new MutationObserver(rm).observe(document.body, { childList: true, subtree: true });
+})();
+</script>`;
 
-  // 5. 返回修改后的响应体
+  // 将脚本注入到 </body> 之前
+  body = body.replace(/<\/body>/i, inject + '</body>');
   $done({ body });
 })();
