@@ -1,65 +1,39 @@
-// 引用地址：https://raw.githubusercontent.com/ZenmoFeiShi/Qx/refs/heads/main/XMLYVIP.js
+// ==============================
+// Ximalaya VIP – 手动注入 Cookie 脚本
+// ==============================
+//
+// 说明：将下面的 MANUAL_COOKIE 值替换为你在浏览器中复制的完整 Cookie 字符串。
+// 支持环境：Surge / Quantumult X / Loon
 
-const _0x1fe1 = [
-  "undefined", "headers", "Cookie", "match", "trim", "<p[^>]*>([^<]+)<\/p>",
-  "body", "GET", "https://raw.githubusercontent.com/mist-whisper/Script/refs/heads/master/Himalaya/test.txt",
-  "Host", "raw.githubusercontent.com", "User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-  "Sec-Fetch-Dest", "document"
-];
-const isReq = typeof $request !== _0x1fe1[0], isQX = typeof $task !== _0x1fe1[0], isLoon = typeof $loon !== _0x1fe1[0];
+// —— 环境检测 ——  
+const isReq  = typeof $request !== "undefined";
+const isQX   = typeof $task    !== "undefined";
+const isLoon = typeof $loon    !== "undefined";
 
-function notify(title, subtitle, msg) {
+// —— 通用通知函数 ——  
+function notify(title, subtitle, message) {
   if (isQX) {
-    $notify(title, subtitle, msg);
+    $notify(title, subtitle, message);
   } else if (isLoon) {
-    $notification.post(title, subtitle, msg);
+    $notification.post(title, subtitle, message);
   } else if (typeof $notify !== "undefined") {
-    $notify(title, subtitle, msg);
+    // Surge
+    $notify(title, subtitle, message);
   }
 }
 
+// —— 在此处粘贴你的完整 Cookie ——  
+// 示例格式： "uid=123456; session=abcdef; theme=dark;"
+const MANUAL_COOKIE = "1&_token=326951508&2DC12D40340C8F344DE687A904289C24F8EF224B2847FB6740119F498047D4873345B1F6E4A1169MBEB9F9C6266EA30_";
+
 if (isReq) {
-  (async () => {
-    try {
-      const fetchC = async () => {
-        const req = {
-          url: _0x1fe1[8],
-          method: _0x1fe1[7],
-          headers: {
-            [_0x1fe1[9]]: _0x1fe1[10],
-            [_0x1fe1[11]]: _0x1fe1[12],
-            [_0x1fe1[13]]: _0x1fe1[14],
-            [_0x1fe1[15]]: _0x1fe1[16]
-          }
-        };
-        const res = isQX
-          ? await $task.fetch(req)
-          : await new Promise((_0x1828x9, _0x1828xa) => {
-              $httpClient.get(req, (_0x1828xb, _0x1828xc, _0x1828xd) => {
-                _0x1828xb
-                  ? _0x1828xa(_0x1828xb)
-                  : _0x1828x9({ statusCode: _0x1828xc.status, body: _0x1828xd });
-              });
-            });
-        const html = res[_0x1fe1[6]];
-        const m = html?.[_0x1fe1[3]](new RegExp(_0x1fe1[5]));
-        const ck = m ? m[1][_0x1fe1[4]]() : null;
-        if (ck) {
-          let hds = $request[_0x1fe1[1]];
-          hds[_0x1fe1[2]] = ck;
-          console.log("喜马拉雅激活会员成功，尽情享受会员听书🌹");
-          $done({ headers: hds });
-        } else {
-          console.log("喜马拉雅会员未生效❌，或已过期");
-          $done({});
-        }
-      };
-      await fetchC();
-    } catch (_) {
-      console.log("喜马拉雅会员异常❌：" + _);
-      $done({});
-    }
-  })();
+  // 拦截请求时注入你的 Cookie
+  let headers = $request.headers;
+  headers["Cookie"] = MANUAL_COOKIE;
+  console.log("✅ 已手动注入 Cookie，跳过远程抓取");
+  notify("Ximalaya VIP", "", "已使用手动 Cookie 注入");
+  $done({ headers });
 } else {
+  // 非请求场景，不做任何处理
   $done({});
 }
