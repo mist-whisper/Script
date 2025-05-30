@@ -1,44 +1,65 @@
-const isQX = typeof $task !== 'undefined';
-const isLoon = typeof $loon !== 'undefined';
-const isSurge = typeof $httpClient !== 'undefined' && typeof $persistentStore !== 'undefined';
-const isRequest = typeof $request !== 'undefined';
+// 引用地址：https://raw.githubusercontent.com/ZenmoFeiShi/Qx/refs/heads/main/XMLYVIP.js
 
-function notify(title, subtitle, message) {
+const _0x1fe1 = [
+  "undefined", "headers", "Cookie", "match", "trim", "<p[^>]*>([^<]+)<\/p>",
+  "body", "GET", "https://raw.githubusercontent.com/mist-whisper/Script/refs/heads/master/Himalaya/test.txt",
+  "Host", "raw.githubusercontent.com", "User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+  "Sec-Fetch-Dest", "document"
+];
+const isReq = typeof $request !== _0x1fe1[0], isQX = typeof $task !== _0x1fe1[0], isLoon = typeof $loon !== _0x1fe1[0];
+
+function notify(title, subtitle, msg) {
   if (isQX) {
-    $notify(title, subtitle, message);
-  } else if (isLoon || isSurge) {
-    $notification.post(title, subtitle, message);
+    $notify(title, subtitle, msg);
+  } else if (isLoon) {
+    $notification.post(title, subtitle, msg);
+  } else if (typeof $notify !== "undefined") {
+    $notify(title, subtitle, msg);
   }
 }
 
-function getValue(key) {
-  if (isQX) return $prefs.valueForKey(key);
-  if (isLoon || isSurge) return $persistentStore.read(key);
-}
-
-async function handleRequest() {
-  try {
-    const cookie = getValue('ximalaya_cookie');
-
-    if (cookie) {
-      const headers = $request.headers;
-      headers['1&_token=326951508&2DC12D40340C8F344DE687A904289C24F8EF224B2847FB6740119F498047D4873345B1F6E4A1169MBEB9F9C6266EA30_'] = cookie;
-      console.log('✅ 使用本地 Cookie 注入成功');
-      $done({ headers });
-    } else {
-      console.log('❌ 未检测到本地 Cookie，请先手动设置');
-      notify('喜马拉雅 VIP 激活失败', '', '⚠️ 未设置持久化 Cookie（ximalaya_cookie）');
+if (isReq) {
+  (async () => {
+    try {
+      const fetchC = async () => {
+        const req = {
+          url: _0x1fe1[8],
+          method: _0x1fe1[7],
+          headers: {
+            [_0x1fe1[9]]: _0x1fe1[10],
+            [_0x1fe1[11]]: _0x1fe1[12],
+            [_0x1fe1[13]]: _0x1fe1[14],
+            [_0x1fe1[15]]: _0x1fe1[16]
+          }
+        };
+        const res = isQX
+          ? await $task.fetch(req)
+          : await new Promise((_0x1828x9, _0x1828xa) => {
+              $httpClient.get(req, (_0x1828xb, _0x1828xc, _0x1828xd) => {
+                _0x1828xb
+                  ? _0x1828xa(_0x1828xb)
+                  : _0x1828x9({ statusCode: _0x1828xc.status, body: _0x1828xd });
+              });
+            });
+        const html = res[_0x1fe1[6]];
+        const m = html?.[_0x1fe1[3]](new RegExp(_0x1fe1[5]));
+        const ck = m ? m[1][_0x1fe1[4]]() : null;
+        if (ck) {
+          let hds = $request[_0x1fe1[1]];
+          hds[_0x1fe1[2]] = ck;
+          console.log("喜马拉雅激活会员成功，尽情享受会员听书🌹");
+          $done({ headers: hds });
+        } else {
+          console.log("喜马拉雅会员未生效❌，或已过期");
+          $done({});
+        }
+      };
+      await fetchC();
+    } catch (_) {
+      console.log("喜马拉雅会员异常❌：" + _);
       $done({});
     }
-  } catch (err) {
-    console.log('❌ 错误：', err);
-    notify('喜马拉雅脚本出错', '', String(err));
-    $done({});
-  }
-}
-
-if (isRequest) {
-  handleRequest();
+  })();
 } else {
   $done({});
 }
