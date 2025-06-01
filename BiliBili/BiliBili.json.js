@@ -125,7 +125,7 @@
 
   // —— “我的”页面定制 —— 
   function f(i, t) {
-    // 以下 e.sections_v2 只保留：“离线缓存”、“历史记录”、“我的收藏” 以及 “更多服务” 部分
+    // 以下 e.sections_v2 只保留：“离线缓存”、“历史记录”、“我的收藏” 以及 “设置”
     let e = {
       sections_v2: [
         {
@@ -155,23 +155,14 @@
                 "http://i0.hdslb.com/bfs/archive/d79b19d983067a1b91614e830a7100c05204a821.png",
               common_op_item: {}
             }
-            // “稍后再看” 已移除
           ],
           style: 1,
           button: {}
         },
         {
-          // 第二组：更多服务（保持“联系客服” 和 “设置”）
+          // 第二组：更多服务（仅保留“设置”）
           title: "更多服务",
           items: [
-            {
-              id: 407,
-              title: "联系客服",
-              uri: "bilibili://user_center/feedback",
-              icon:
-                "http://i0.hdslb.com/bfs/archive/7ca840cf1d887a45ee1ef441ab57845bf26ef5fa.png",
-              common_op_item: {}
-            },
             {
               id: 410,
               title: "设置",
@@ -185,7 +176,7 @@
           button: {}
         }
       ],
-      // iPad 版相关保留原脚本定义，如有需要可自行删改
+      // iPad 版相关保持同步：移除“我的客服”，仅保留“设置”
       ipad_sections: [
         {
           id: 747,
@@ -249,14 +240,6 @@
         }
       ],
       ipad_more_sections: [
-        {
-          id: 763,
-          title: "我的客服",
-          uri: "bilibili://user_center/feedback",
-          icon:
-            "http://i0.hdslb.com/bfs/feed-admin/7801a6180fb67cf5f8ee05a66a4668e49fb38788.png",
-          mng_resource: { icon_id: 0, icon: "" }
-        },
         {
           id: 764,
           title: "设置",
