@@ -1,3 +1,5 @@
+// 引用地址：https://raw.githubusercontent.com/fmz200/wool_scripts/refs/heads/main/Scripts/xiaohongshu/xiaohongshu.js
+
 const $ = new Env('小红书');
 const url = $request.url;
 let rsp_body = $response.body;
