@@ -1,5 +1,3 @@
-// 引用地址：https://raw.githubusercontent.com/fmz200/wool_scripts/refs/heads/main/Scripts/xiaohongshu/xiaohongshu.js
-
 const $ = new Env('小红书');
 const url = $request.url;
 let rsp_body = $response.body;
@@ -14,12 +12,13 @@ let obj;
 try {
   obj = JSON.parse(rsp_body);
 } catch (e) {
-  console.log(`解析 JSON 失败：${e}。返回原始 Body`);
+  console.log(`解析 JSON 失败：${e}，返回原始 Body`);
   $done({ body: rsp_body });
 }
 
-// 搜索相关：去除广告/热搜/提示/趋势/非“笔记”类型
-
+/*==============================================================================
+  3. 搜索相关：去除广告/热搜/提示/趋势/非“笔记”类型
+==============================================================================*/
 if (url.includes("/search/banner_list")) {
   if (obj.data) obj.data = {};
 }
@@ -49,8 +48,9 @@ if (url.includes("/search/notes?")) {
   }
 }
 
-// 系统配置 & 启动页广告 去除
-
+/*==============================================================================
+  4. 系统配置 & 启动页广告 去除
+==============================================================================*/
 if (url.includes("/system_service/config?")) {
   if (obj.data) {
     const removeKeys = ["app_theme", "loading_img", "splash", "store"];
@@ -75,13 +75,14 @@ if (url.includes("/system_service/splash_config")) {
   }
 }
 
-// 在笔记详情页缓存 images_list，以支持直接在详情长按保存 Live 图
-
+/*==============================================================================
+  5. 在笔记详情页缓存 images_list，以支持直接在详情长按保存 Live 图
+==============================================================================*/
 if (url.includes("/note/detail")) {
   try {
     const detailImages = obj.data?.images_list;
     if (Array.isArray(detailImages) && detailImages.length > 0) {
-      $.setdata(JSON.stringify(detailImages), "fmz200.xiaohongshu.feed.rsp");
+      $.setval(JSON.stringify(detailImages), "fmz200.xiaohongshu.feed.rsp");
       console.log(`详情页缓存：共 ${detailImages.length} 张图片/Live 图`);
     }
   } catch (e) {
@@ -89,8 +90,9 @@ if (url.includes("/note/detail")) {
   }
 }
 
-// 信息流列表页（Feed）缓存所有 note 的 images_list，并去水印/加下载按钮/画质增强
-
+/*==============================================================================
+  6. 信息流列表页（Feed）缓存所有 note 的 images_list，并去水印/加下载按钮/画质增强
+==============================================================================*/
 if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
   try {
     const firstPage = obj.data;
@@ -111,7 +113,7 @@ if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
             }
           }
         }
-        // 合并本页所有 note 的 images_list 到一个大数组
+        // 6.2 合并本页所有 note 的 images_list 到一个大数组
         let allImages = [];
         for (let noteItem of noteList) {
           const imagesArr = noteItem?.images_list;
@@ -127,7 +129,7 @@ if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
           }
         }
         if (allImages.length > 0) {
-          $.setdata(JSON.stringify(allImages), "fmz200.xiaohongshu.feed.rsp");
+          $.setval(JSON.stringify(allImages), "fmz200.xiaohongshu.feed.rsp");
           console.log(`Feed 页缓存：共 ${allImages.length} 张图片/Live 图`);
         }
       }
@@ -137,11 +139,12 @@ if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
   }
 }
 
-// Live Photo 保存：根据缓存内容替换 URL，不命中则回退
-
+/*==============================================================================
+  7. Live Photo 保存：根据缓存内容替换 URL，不命中则回退
+==============================================================================*/
 if (url.includes("/note/live_photo/save")) {
   console.log('触发 /note/live_photo/save，原 body：' + rsp_body);
-  const rawCache = $.getdata("fmz200.xiaohongshu.feed.rsp") || "";
+  const rawCache = $.getval("fmz200.xiaohongshu.feed.rsp") || "";
   if (!rawCache) {
     console.log('保存失败：缓存为空');
     $done({ body: rsp_body });
@@ -191,8 +194,9 @@ if (url.includes("/note/live_photo/save")) {
   console.log('保存后新 body：' + JSON.stringify(obj));
 }
 
-// 视频信息流 v3：去水印 + 加下载按钮
-
+/*==============================================================================
+  8. 视频信息流 v3：去水印 + 加下载按钮
+==============================================================================*/
 if (url.includes("/v3/note/videofeed?")) {
   try {
     if (Array.isArray(obj.data) && obj.data.length > 0) {
@@ -215,8 +219,9 @@ if (url.includes("/v3/note/videofeed?")) {
   }
 }
 
-// 视频信息流 v4：缓存无水印 h265 链接 + 加下载按钮
-
+/*==============================================================================
+  9. 视频信息流 v4：缓存无水印 h265 链接 + 加下载按钮
+==============================================================================*/
 if (url.includes("/v4/note/videofeed")) {
   try {
     let normalCache = [];
@@ -243,11 +248,11 @@ if (url.includes("/v4/note/videofeed")) {
       }
     }
     if (normalCache.length > 0) {
-      $.setdata(JSON.stringify(normalCache), "redBookVideoFeed");
+      $.setval(JSON.stringify(normalCache), "redBookVideoFeed");
       console.log(`v4 cache: 普通视频 ${normalCache.length} 条`);
     }
     if (unlockCache.length > 0) {
-      $.setdata(JSON.stringify(unlockCache), "redBookVideoFeedUnlock");
+      $.setval(JSON.stringify(unlockCache), "redBookVideoFeedUnlock");
       console.log(`v4 cache: 禁止保存视频 ${unlockCache.length} 条`);
     }
   } catch (e) {
@@ -255,8 +260,9 @@ if (url.includes("/v4/note/videofeed")) {
   }
 }
 
-// 视频保存 v10：从缓存中取无水印链接进行替换
-
+/*==============================================================================
+  10. 视频保存 v10：从缓存中取无水印链接进行替换
+==============================================================================*/
 if (url.includes("/v10/note/video/save")) {
   try {
     const vid = obj.data?.note_id;
@@ -264,8 +270,8 @@ if (url.includes("/v10/note/video/save")) {
       console.log("视频保存失败：响应体缺少 note_id");
       $done({ body: rsp_body });
     }
-    const normalRaw = $.getdata("redBookVideoFeed") || "[]";
-    const unlockRaw = $.getdata("redBookVideoFeedUnlock") || "[]";
+    const normalRaw = $.getval("redBookVideoFeed") || "[]";
+    const unlockRaw = $.getval("redBookVideoFeedUnlock") || "[]";
     let normalArr = [], unlockArr = [];
     try {
       normalArr = JSON.parse(normalRaw);
@@ -305,14 +311,15 @@ if (url.includes("/v10/note/video/save")) {
       console.log(`视频保存失败：note_id=${vid} 未在任何缓存命中`);
     }
     // 重置 unlock 缓存
-    $.setdata(JSON.stringify([]), "redBookVideoFeedUnlock");
+    $.setval("", "redBookVideoFeedUnlock");
   } catch (e) {
     console.log(`/v10/note/video/save 处理异常：${e}`);
   }
 }
 
-// 关注页 / 推荐页 相关过滤
-
+/*==============================================================================
+  11. 关注页 / 推荐页 相关过滤
+==============================================================================*/
 if (url.includes("/user/followings/followfeed")) {
   if (Array.isArray(obj.data?.items)) {
     obj.data.items = obj.data.items.filter(i => i?.recommend_reason === "friend_post");
@@ -331,8 +338,9 @@ if (url.includes("/recommend/user/follow_recommend")) {
   }
 }
 
-// 首页 Feed（v6）去广告/带货/商品，只保留直播 & 普通笔记
-
+/*==============================================================================
+  12. 首页 Feed（v6）去广告/带货/商品，只保留直播 & 普通笔记
+==============================================================================*/
 if (url.includes("/v6/homefeed")) {
   try {
     const arr = obj.data;
@@ -361,8 +369,9 @@ if (url.includes("/v6/homefeed")) {
   }
 }
 
-// 小工具 Widgets 过滤
-
+/*==============================================================================
+  13. 小工具 Widgets 过滤
+==============================================================================*/
 if (url.includes("/note/widgets")) {
   if (obj.data) {
     const removeKeys = ["cooperate_binds", "generic", "note_next_step"];
@@ -372,8 +381,9 @@ if (url.includes("/note/widgets")) {
   }
 }
 
-// 评论列表 & 评论 Live 图缓存
-
+/*==============================================================================
+  14. 评论列表 & 评论 Live 图缓存
+==============================================================================*/
 if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
   try {
     replaceRedIdWithFmz200(obj.data);
@@ -441,7 +451,7 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
     }
     console.log(`评论列表 note_id=${note_id}，共收集到 ${livePhotos.length} 条 Live 图`);
     if (livePhotos.length > 0) {
-      const oldCacheRaw = $.getdata("fmz200.xiaohongshu.comments.rsp") || "";
+      const oldCacheRaw = $.getval("fmz200.xiaohongshu.comments.rsp") || "";
       let newCache = { noteId: note_id, livePhotos };
       if (oldCacheRaw) {
         try {
@@ -456,7 +466,7 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
           console.log("旧评论缓存解析失败，直接覆盖");
         }
       }
-      $.setdata(JSON.stringify(newCache), "fmz200.xiaohongshu.comments.rsp");
+      $.setval(JSON.stringify(newCache), "fmz200.xiaohongshu.comments.rsp");
       console.log("已写入评论 Live 图缓存");
     }
   } catch (e) {
@@ -464,11 +474,12 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
   }
 }
 
-// 评论区 Live 图下载替换
-
+/*==============================================================================
+  15. 评论区 Live 图下载替换
+==============================================================================*/
 if (url.includes("/api/sns/v1/interaction/comment/video/download?")) {
   try {
-    const cacheRaw = $.getdata("fmz200.xiaohongshu.comments.rsp") || "";
+    const cacheRaw = $.getval("fmz200.xiaohongshu.comments.rsp") || "";
     const vid = obj.data?.video?.video_id;
     if (!vid) {
       console.log("评论 Live 图下载失败：响应体缺少 video.video_id");
@@ -514,7 +525,7 @@ function imageEnhance(jsonStr) {
   }
   let modStr = jsonStr;
   try {
-    const quality = $.getdata("fmz200.xiaohongshu.imageQuality");
+    const quality = $.getval("fmz200.xiaohongshu.imageQuality");
     if (quality === "original") {
       modStr = modStr.replace(
         /\?imageView2\/2[^&]*(?:&redImage\/frame\/0)/,
@@ -574,103 +585,93 @@ function replaceRedIdWithFmz200(obj) {
   }
 }
 
-// Env 类：跨 Surge / Loon / Shadowrocket / Stash / Quantumult X / Node.js 多平台持久化支持
-
+/*==============================================================================
+  Env 类：跨 Surge / Loon / Shadowrocket / Stash / Quantumult X / Node.js 多平台持久化支持
+  ※ 已按“图中 Env.getval”方式实现 getval、setval、delval，确保 QuanX 下也可用
+==============================================================================*/
 function Env(name) {
   this.name = name || 'Env';
 
   /**
-   * getdata(key)：读取本地存储
+   * getval(key)：读取本地存储
+   *   Surge/Loon/Shadowsrocket/Stash → $persistentStore.read(key)
+   *   Quantumult X → $prefs.valueForKey(key)
+   *   Node.js → 从本地 data.json 读
+   *   其他 → 从 this.data[key] 取
    */
-  this.getdata = (key) => {
+  this.getval = (key) => {
     const env = this.getEnv();
-    try {
-      switch (env) {
-        case 'Surge':
-        case 'Loon':
-        case 'Stash':
-        case 'Shadowrocket':
-          return $persistentStore.read(key) || null;
-
-        case 'Quantumult X':
-          return $prefs.valueForKey(key) || null;
-
-        case 'Node.js':
-          this.data = this.data || this.loaddata();
-          return this.data[key] || null;
-
-        default:
-          return (this.data && this.data[key]) || null;
-      }
-    } catch (e) {
-      console.log(`${this.name} getdata(${key}) 异常：${e}`);
-      return null;
+    switch (env) {
+      case 'Surge':
+      case 'Loon':
+      case 'Stash':
+      case 'Shadowrocket':
+        return $persistentStore.read(key) || null;
+      case 'Quantumult X':
+        return $prefs.valueForKey(key) || null;
+      case 'Node.js':
+        this.data = this.data || this.loaddata();
+        return this.data[key] || null;
+      default:
+        return (this.data && this.data[key]) || null;
     }
   };
 
   /**
-   * setdata(val, key)：写入本地存储
+   * setval(val, key)：写入本地存储
+   *   Surge/Loon/Shadowsrocket/Stash → $persistentStore.write(val, key)
+   *   Quantumult X → $prefs.setValueForKey(val, key)
+   *   Node.js → 写入本地 data.json
+   *   其他 → this.data[key] = val
    */
-  this.setdata = (val, key) => {
+  this.setval = (val, key) => {
     const env = this.getEnv();
-    try {
-      switch (env) {
-        case 'Surge':
-        case 'Loon':
-        case 'Stash':
-        case 'Shadowrocket':
-          return $persistentStore.write(val, key);
-
-        case 'Quantumult X':
-          return $prefs.setValueForKey(val, key);
-
-        case 'Node.js':
-          this.data = this.data || this.loaddata();
-          this.data[key] = val;
-          return this.savedata();
-
-        default:
-          if (!this.data) this.data = {};
-          this.data[key] = val;
-          return true;
-      }
-    } catch (e) {
-      console.log(`${this.name} setdata(${key}) 异常：${e}`);
-      return false;
+    switch (env) {
+      case 'Surge':
+      case 'Loon':
+      case 'Stash':
+      case 'Shadowrocket':
+        return $persistentStore.write(val, key);
+      case 'Quantumult X':
+        return $prefs.setValueForKey(val, key);
+      case 'Node.js':
+        this.data = this.data || this.loaddata();
+        this.data[key] = val;
+        return this.savedata();
+      default:
+        if (!this.data) this.data = {};
+        this.data[key] = val;
+        return true;
     }
   };
 
   /**
-   * deletedata(key)：删除本地存储中的某个键
+   * delval(key)：删除本地存储中的某个键
+   *   Surge/Loon/Shadowsrocket/Stash → $persistentStore.write('', key)
+   *   Quantumult X → $prefs.removeValueForKey(key)
+   *   Node.js → 从 data.json 中删除并写回
+   *   其他 → delete this.data[key]
    */
-  this.deletedata = (key) => {
+  this.delval = (key) => {
     const env = this.getEnv();
-    try {
-      switch (env) {
-        case 'Surge':
-        case 'Loon':
-        case 'Stash':
-        case 'Shadowrocket':
-          return $persistentStore.write('', key);
-
-        case 'Quantumult X':
-          return $prefs.removeValueForKey(key);
-
-        case 'Node.js':
-          this.data = this.data || this.loaddata();
+    switch (env) {
+      case 'Surge':
+      case 'Loon':
+      case 'Stash':
+      case 'Shadowrocket':
+        return $persistentStore.write('', key);
+      case 'Quantumult X':
+        return $prefs.removeValueForKey(key);
+      case 'Node.js':
+        this.data = this.data || this.loaddata();
+        delete this.data[key];
+        return this.savedata();
+      default:
+        if (this.data && this.data.hasOwnProperty(key)) {
           delete this.data[key];
-          return this.savedata();
-
-        default:
-          if (this.data && this.data.hasOwnProperty(key)) {
-            delete this.data[key];
-            return true;
-          }
-          return false;
-      }
-    } catch (e) {
-      console.log(`${this.name} deletedata(${key}) 异常：${e}`);
-      return false;
+          return true;
+        }
+        return false;
     }
   };
 
