@@ -1,12 +1,5 @@
 // 引用地址：https://raw.githubusercontent.com/fmz200/wool_scripts/refs/heads/main/Scripts/xiaohongshu/xiaohongshu.js
 
-/**
- * @author fmz200
- * @function 小红书去广告/净化/解除下载限制/画质增强 + 更健壮的 Live 图缓存处理
- * @date 2025-06-01
- * @quote @RuCu6
- */
-
 const $ = new Env('小红书');
 const url = $request.url;
 let rsp_body = $response.body;
@@ -24,7 +17,7 @@ try {
   $done({ body: rsp_body });
 }
 
-// 1.—— 搜索相关：去除广告/热搜/提示/趋势/非“笔记”类型 —— 
+// —— 搜索相关：去除广告/热搜/提示/趋势/非“笔记”类型 —— 
 
 if (url.includes("/search/banner_list")) {
   if (obj.data) obj.data = {};
@@ -55,7 +48,7 @@ if (url.includes("/search/notes?")) {
   }
 }
 
-// 2.—— 系统配置 & 启动页广告 —— 
+// —— 系统配置 & 启动页广告 —— 
 
 if (url.includes("/system_service/config?")) {
   if (obj.data) {
@@ -81,7 +74,7 @@ if (url.includes("/system_service/splash_config")) {
   }
 }
 
-// 3.—— 在笔记详情页也缓存 images_list，以增加“在详情页直接保存”时的命中率 —— 
+// —— 在笔记详情页也缓存 images_list，以增加“在详情页直接保存”时的命中率 —— 
 
 if (url.includes("/note/detail")) {
   try {
@@ -96,7 +89,7 @@ if (url.includes("/note/detail")) {
   }
 }
 
-// 4.—— Feed 列表页缓存所有 note 的 images_list —— 
+// —— Feed 列表页缓存所有 note 的 images_list —— 
 
 if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
   try {
@@ -146,7 +139,7 @@ if (url.includes("/note/imagefeed?") || url.includes("/note/feed?")) {
   }
 }
 
-// 5.—— live_photo 保存：根据缓存结果替换 URL —— 
+// —— live_photo 保存：根据缓存结果替换 URL —— 
 
 if (url.includes("/note/live_photo/save")) {
   console.log('触发 live_photo/save，原 body：' + rsp_body);
@@ -201,7 +194,7 @@ if (url.includes("/note/live_photo/save")) {
   console.log('保存后新 body：' + JSON.stringify(obj));
 }
 
-// 6.—— 视频信息流 & 保存（v3/v4/v10）类似逻辑，可参照上面思路做健壮性检查 —— 
+// —— 视频信息流 & 保存（v3/v4/v10）
 
 if (url.includes("/v3/note/videofeed?")) {
   try {
@@ -317,7 +310,7 @@ if (url.includes("/v10/note/video/save")) {
   }
 }
 
-// 7.—— 关注页 / 推荐页 —— 
+// —— 关注页 / 推荐页 —— 
 
 if (url.includes("/user/followings/followfeed")) {
   if (Array.isArray(obj.data?.items)) {
@@ -337,7 +330,7 @@ if (url.includes("/recommend/user/follow_recommend")) {
   }
 }
 
-// 8.—— 首页 Feed（v6）去广告/带货/商品，只保留直播 & 普通笔记 —— 
+// —— 首页 Feed（v6）去广告/带货/商品，只保留直播 & 普通笔记 —— 
 
 if (url.includes("/v6/homefeed")) {
   try {
@@ -367,7 +360,7 @@ if (url.includes("/v6/homefeed")) {
   }
 }
 
-// 9.—— 小工具 Widgets —— 
+// —— 小工具 Widgets —— 
 
 if (url.includes("/note/widgets")) {
   if (obj.data) {
@@ -378,7 +371,7 @@ if (url.includes("/note/widgets")) {
   }
 }
 
-// 10.—— 评论列表 & 评论 Live 图缓存 —— 
+// —— 评论列表 & 评论 Live 图缓存 —— 
 
 if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
   try {
@@ -470,7 +463,7 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
   }
 }
 
-// 11.—— 评论区 Live 图下载替换 —— 
+// —— 评论区 Live 图下载替换 —— 
 
 if (url.includes("/api/sns/v1/interaction/comment/video/download?")) {
   try {
