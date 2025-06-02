@@ -1,5 +1,6 @@
 // https://raw.githubusercontent.com/deezertidal/Surge_Module/master/files/histoday.js
 
+//6.2
 /**
  * 解析脚本传入的参数字符串，返回键值对对象。
  * 支持空字符串处理、重复键覆盖、值解码，并提供默认值接口。
@@ -77,7 +78,6 @@ function getIntParam(params, key, defaultVal, min, max) {
     // 3.1 网络层错误
     if (error) {
       console.log("请求失败：", error);
-      // 返回一个空通知，或根据需求返回特定信息
       $done({});
       return;
     }
@@ -105,10 +105,9 @@ function getIntParam(params, key, defaultVal, min, max) {
 
 /**
  * 解析返回的 HTML，提取“YYYY年M月D日 <a>事件描述</a>”的条目，
- * 并构造通知体。
- * 将“历史上的今天”后面添加具体月日（从第一个匹配项中获取），
- * 事件列表中只保留年份和描述，不再带月日。
- * 内部做了多重校验与异常捕获，保证健壮性。
+ * 并构造带 HTML 样式的通知体：
+ * - 标题：加粗、大字号并用颜色区分，同时在括号内显示具体月日
+ * - 每条事件：只保留年份和描述，字号稍大、不同颜色
  * @param {string} html - 已经做了 &nbsp; 替换的页面源码
  * @param {Object} options - 通知所需的额外参数
  * @param {string} options.icon - 通知图标
@@ -127,12 +126,10 @@ function handleResponse(html, options) {
      * - (\d{1,2}月\d{1,2}日)  匹配月日，例如 "6月2日" 或 "12月25日"
      * - <a href='\/\d+__lishishangdejintianchaxun\/' target='_blank'>(.*?)<\/a>
      *     匹配链接中的事件描述，捕获文本内容到 group[3]
-     *   （注意：href 的数字部分至少要有一位）
      */
     const regex = /(\d{4}年)(\d{1,2}月\d{1,2}日)\s*<a\s+href='\/\d+__lishishangdejintianchaxun\/'\s+target='_blank'>(.*?)<\/a>/g;
     let match;
 
-    // 使用正则循环匹配，直到没有下一条为止
     while ((match = regex.exec(html)) !== null) {
       const yearText = match[1].trim();      // "2025年"
       const dateText = match[2].trim();      // "6月2日"
@@ -145,48 +142,46 @@ function handleResponse(html, options) {
 
       // 简单校验：年份要四位数字 + "年"，月日要包含 "月" 和 "日"
       if (!/^\d{4}年$/.test(yearText) || !/^\d{1,2}月\d{1,2}日$/.test(dateText)) {
-        // 跳过不符合预期格式的条目
-        continue;
+        continue; // 跳过格式不符合预期的条目
       }
 
       // 只保留年份和描述：例如 "2025年：某某大事件"
-      events.push(`${yearText}：${description}`);
+      events.push({ year: yearText, desc: description });
 
-      // 如果已经收集够指定数量，就提前退出
       if (events.length >= count) {
-        break;
+        break; // 已收集够指定数量，退出循环
       }
     }
   } catch (e) {
     console.log('解析 HTML 时发生异常：', e);
-    // 出现任何异常都退出并返回空内容
     $done({});
     return;
   }
 
   // 如果没匹配到任何事件，则直接返回空
-  if (events.length === 0) {
+  if (events.length === 0 || !monthDay) {
     $done({});
     return;
   }
 
-  // 如果 monthDay 仍然为 null，则说明没能正确提取月日，也直接退出
-  if (!monthDay) {
-    $done({});
-    return;
-  }
+  // 构造带样式的标题：加粗、大字号、特定颜色
+  // 例如：<span style="font-weight:bold;font-size:22px;color:#FF4500">📓 历史上的今天 (6月2日)</span>
+  const titleHTML = `<span style="font-weight:bold; font-size:22px; color:${iconColor};">${icon} 历史上的今天 (${monthDay})</span>`;
 
-  // 将事件数组拼接成多行文本，去掉两端多余空白
-  const notificationText = events.join("\n").trim();
+  // 构造带样式的事件列表：每行用 <div>，字号适当增大、用蓝色区分
+  // 例如：<div style="font-size:16px; color:#3333FF;">2025年：某某大事件</div>
+  let contentHTML = '';
+  events.forEach(item => {
+    contentHTML += `<div style="font-size:16px; color:#3333FF; margin-bottom:4px;">${item.year}：${item.desc}</div>`;
+  });
 
-  // 构造最终返回给宿主环境的通知体
+  // 返回包含 HTML 的通知体
   const body = {
-    // 在“历史上的今天”后面用括号包裹具体月日
-    title: `📓 历史上的今天 (${monthDay})`,
-    content: notificationText, // 只保留年份和描述
-    icon: icon,                // 通知图标（带默认）
-    "icon-color": iconColor,   // 通知图标颜色（带默认）
-    count: events.length       // 实际返回的事件条数
+    title: titleHTML,
+    content: contentHTML.trim(),
+    icon: icon,
+    "icon-color": iconColor,
+    count: events.length
   };
 
   $done(body);
