@@ -1,6 +1,10 @@
-// https://raw.githubusercontent.com/deezertidal/Surge_Module/master/files/histoday.js
+// 引用地址：https://raw.githubusercontent.com/deezertidal/Surge_Module/master/files/histoday.js
 
-/**
+/*
+ *  原作者：@deezertidal
+ *  修改：@wish
+ *  更新时间：2025.06.02
+ *  
  * 解析脚本传入的参数字符串，返回键值对对象。
  * 支持空字符串处理、重复键覆盖、值解码，并提供默认值接口。
  * @param {string} rawArg - 形如 "key1=val1&key2=val2" 的参数字符串
