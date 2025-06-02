@@ -105,7 +105,10 @@ function getIntParam(params, key, defaultVal, min, max) {
 
 /**
  * 解析返回的 HTML，提取“YYYY年M月D日 <a>事件描述</a>”的条目，
- * 并构造通知体。内部做了多重校验与异常捕获，保证健壮性。
+ * 并构造通知体。
+ * 将“历史上的今天”后面添加具体月日（从第一个匹配项中获取），
+ * 事件列表中只保留年份和描述，不再带月日。
+ * 内部做了多重校验与异常捕获，保证健壮性。
  * @param {string} html - 已经做了 &nbsp; 替换的页面源码
  * @param {Object} options - 通知所需的额外参数
  * @param {string} options.icon - 通知图标
@@ -115,6 +118,7 @@ function getIntParam(params, key, defaultVal, min, max) {
 function handleResponse(html, options) {
   const { icon, iconColor, count } = options;
   const events = [];
+  let monthDay = null; // 用于存储“6月2日”之类的月日文本
 
   try {
     /**
@@ -130,10 +134,14 @@ function handleResponse(html, options) {
 
     // 使用正则循环匹配，直到没有下一条为止
     while ((match = regex.exec(html)) !== null) {
-      // match[1] = "2025年"；match[2] = "6月2日"；match[3] = "事件描述"
-      const yearText = match[1].trim();
-      const dateText = match[2].trim();
-      const description = match[3].trim();
+      const yearText = match[1].trim();      // "2025年"
+      const dateText = match[2].trim();      // "6月2日"
+      const description = match[3].trim();   // "事件描述"
+
+      // 只在第一次匹配时保存月日，用于标题中显示
+      if (monthDay === null) {
+        monthDay = dateText;
+      }
 
       // 简单校验：年份要四位数字 + "年"，月日要包含 "月" 和 "日"
       if (!/^\d{4}年$/.test(yearText) || !/^\d{1,2}月\d{1,2}日$/.test(dateText)) {
@@ -141,10 +149,13 @@ function handleResponse(html, options) {
         continue;
       }
 
-      // 最终格式示例："2025年 6月2日：某某大事件"
-      events.push(`${yearText} ${dateText}：${description}`);
-      // 如果已经收集够指定数量，可以提前退出循环
-      if (events.length >= count) break;
+      // 只保留年份和描述：例如 "2025年：某某大事件"
+      events.push(`${yearText}：${description}`);
+
+      // 如果已经收集够指定数量，就提前退出
+      if (events.length >= count) {
+        break;
+      }
     }
   } catch (e) {
     console.log('解析 HTML 时发生异常：', e);
@@ -159,16 +170,23 @@ function handleResponse(html, options) {
     return;
   }
 
+  // 如果 monthDay 仍然为 null，则说明没能正确提取月日，也直接退出
+  if (!monthDay) {
+    $done({});
+    return;
+  }
+
   // 将事件数组拼接成多行文本，去掉两端多余空白
   const notificationText = events.join("\n").trim();
 
   // 构造最终返回给宿主环境的通知体
   const body = {
-    title: "📓 历史上的今天",       // 通知标题
-    content: notificationText,     // 通知内容
-    icon: icon,                    // 通知图标（带默认）
-    "icon-color": iconColor,       // 通知图标颜色（带默认）
-    count: events.length           // 实际返回的事件条数
+    // 在“历史上的今天”后面用括号包裹具体月日
+    title: `📓 历史上的今天 (${monthDay})`,
+    content: notificationText, // 只保留年份和描述
+    icon: icon,                // 通知图标（带默认）
+    "icon-color": iconColor,   // 通知图标颜色（带默认）
+    count: events.length       // 实际返回的事件条数
   };
 
   $done(body);
