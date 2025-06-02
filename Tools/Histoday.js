@@ -10,6 +10,7 @@
  * @param {string} rawArg - 形如 "key1=val1&key2=val2" 的参数字符串
  * @returns {Object} params - 解析后的参数对象（key -> decoded value）
  */
+
 function getParams(rawArg) {
   const params = {};
 
