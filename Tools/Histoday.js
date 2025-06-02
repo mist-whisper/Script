@@ -181,8 +181,8 @@ function handleResponse(html, options) {
 
   // 构造最终返回给宿主环境的通知体
   const body = {
-    // 在“历史上的今天”后面用括号包裹具体月日
-    title: `📓 历史上的今天 [${monthDay}]`,
+    // 在“历史上的今天”后面加并列日期
+    title: `📓 历史上的今天 · ${monthDay}`,
     content: notificationText, // 只保留年份和描述
     icon: icon,                // 通知图标（带默认）
     "icon-color": iconColor,   // 通知图标颜色（带默认）
