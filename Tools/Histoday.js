@@ -1,70 +1,175 @@
 // https://raw.githubusercontent.com/deezertidal/Surge_Module/master/files/histoday.js
 
-// 从传入的参数字符串中解析出键值对并返回一个对象
-function getParams(param) {
-  return Object.fromEntries(
-    $argument
-      .split("&") // 以 & 分割参数字符串
-      .map((item) => item.split("=")) // 把每个 key=value 分割成 [key, value]
-      .map(([k, v]) => [k, decodeURIComponent(v)]) // 对值进行解码
-  );
+/**
+ * 解析脚本传入的参数字符串，返回键值对对象。
+ * 支持空字符串处理、重复键覆盖、值解码，并提供默认值接口。
+ * @param {string} rawArg - 形如 "key1=val1&key2=val2" 的参数字符串
+ * @returns {Object} params - 解析后的参数对象（key -> decoded value）
+ */
+function getParams(rawArg) {
+  const params = {};
+
+  // 如果没有提供任何参数，则直接返回空对象
+  if (!rawArg || typeof rawArg !== 'string') {
+    return params;
+  }
+
+  // 按 & 拆分，每一项可能是 key=val 或只包含 key
+  rawArg.split('&').forEach(item => {
+    if (!item) return;
+
+    const [rawKey, rawVal] = item.split('=');
+    const key = rawKey ? rawKey.trim() : '';
+    // value 可能含有 =，只 decodeURIComponent 一次
+    const val = rawVal !== undefined ? decodeURIComponent(rawVal.trim()) : '';
+
+    if (!key) return;
+    // 如果同一个 key 出现多次，以最后一个为准
+    params[key] = val;
+  });
+
+  return params;
 }
 
-// 调用 getParams，解析出脚本运行时传入的参数
-const params = getParams($argument);
-
-// 设置请求的目标 URL
-const url = "https://lishishangdejintian.bmcx.com/";
-
-// 发送 GET 请求
-$httpClient.get(url, (error, response, data) => {
-  if (error) {
-    // 如果请求出错，则在控制台输出错误，并结束脚本
-    console.log(error);
-    $done();
-  } else {
-    // 将返回的 HTML 数据中的 &nbsp; 替换为普通空格，方便后续正则匹配
-    const sanitizedData = data.replace(/&nbsp;/g, ' ');
-    // 处理返回的数据
-    handleResponse(sanitizedData);
+/**
+ * 安全地从参数对象中读取整数，并进行范围检查，没有或不合法时返回默认值。
+ * @param {Object} params - 已解析的参数对象
+ * @param {string} key - 需要读取的键名
+ * @param {number} defaultVal - 默认值
+ * @param {number} min - 下限（inclusive）
+ * @param {number} max - 上限（inclusive）
+ * @returns {number} - 最终得到的合法整数
+ */
+function getIntParam(params, key, defaultVal, min, max) {
+  if (!params.hasOwnProperty(key)) {
+    return defaultVal;
   }
-});
+  const parsed = parseInt(params[key], 10);
+  if (isNaN(parsed)) {
+    return defaultVal;
+  }
+  if (parsed < min) {
+    return min;
+  }
+  if (parsed > max) {
+    return max;
+  }
+  return parsed;
+}
 
-function handleResponse(data) {
-  // 定义正则，匹配形如 "YYYY年M月D日 <a href='/数字__lishishangdejintianchaxun/' ...>事件描述</a>"
-  const regex = /(\d{4}年)(\d{1,2}月\d{1,2}日) <a href='\/\d+__lishishangdejintianchaxun\/' target='_blank'>(.*?)<\/a>/g;
-  // 使用 matchAll 提取所有匹配项
-  const matches = [...data.matchAll(regex)];
+/**
+ * 主流程：向指定 URL 发起 GET 请求，抓取“历史上的今天”数据并返回通知体
+ */
+(function main() {
+  // 1. 解析参数
+  const params = getParams($argument);
+  // 为 icon 和 color 提供内置默认值，防止外部参数缺失导致报错
+  const icon = params.icon ? params.icon : '📅';
+  const iconColor = params.color ? params.color : '#FF4500';
+  // 限制 count 在 [1, 20] 之间，默认 6
+  const count = getIntParam(params, 'count', 6, 1, 20);
 
-  if (matches.length > 0) {
-    // 获取当前年份（但后续并未使用，仅保留以防扩展）
-    const today = new Date().getFullYear();
-    const events = [];
+  // 2. 构造请求 URL（可以根据需要将 URL 也做成可配置参数）
+  const url = "https://lishishangdejintian.bmcx.com/";
 
-    // 遍历所有匹配项，组合年份和事件描述
-    for (const match of matches) {
-      // match[1] 是 "YYYY年"， match[3] 是事件描述
-      events.push(`${match[1]} ${match[3]}`);
+  // 3. 发起网络请求
+  $httpClient.get(url, (error, response, data) => {
+    // 3.1 网络层错误
+    if (error) {
+      console.log("请求失败：", error);
+      // 返回一个空通知，或根据需求返回特定信息
+      $done({});
+      return;
     }
 
-    // 从参数中读取 count，默认取 5 条
-    const count = parseInt(params.count) || 5;
-    // 取出前 count 条事件，用换行符分隔
-    const notification = events.slice(0, count).join("\n");
+    // 3.2 检查 HTTP 状态码，只有 200 才处理
+    if (!response || response.status !== 200) {
+      console.log(`非 200 响应：${response ? response.status : '无响应对象'}`);
+      $done({});
+      return;
+    }
 
-    // 构造通知的主体
-    const body = {
-      title: "📓历史上的今天",          // 通知标题
-      content: notification,          // 通知内容
-      icon: params.icon,              // 图标（从参数获取）
-      "icon-color": params.color,     // 图标颜色（从参数获取）
-      count: count                    // 保留的事件条数标记
-    };
+    // 3.3 确保返回数据存在且为字符串
+    if (!data || typeof data !== 'string') {
+      console.log('返回的数据为空或格式不对');
+      $done({});
+      return;
+    }
 
-    // 返回通知内容给平台执行
-    $done(body);
-  } else {
-    // 如果没有匹配到任何历史事件，返回空对象
+    // 3.4 将 HTML 中的 &nbsp; 统一替换为普通空格，方便后续正则处理
+    const sanitizedData = data.replace(/&nbsp;/g, ' ');
+    // 进入数据解析流程
+    handleResponse(sanitizedData, { icon, iconColor, count });
+  });
+})();
+
+/**
+ * 解析返回的 HTML，提取“YYYY年M月D日 <a>事件描述</a>”的条目，
+ * 并构造通知体。内部做了多重校验与异常捕获，保证健壮性。
+ * @param {string} html - 已经做了 &nbsp; 替换的页面源码
+ * @param {Object} options - 通知所需的额外参数
+ * @param {string} options.icon - 通知图标
+ * @param {string} options.iconColor - 通知图标颜色
+ * @param {number} options.count - 希望展示的事件条数
+ */
+function handleResponse(html, options) {
+  const { icon, iconColor, count } = options;
+  const events = [];
+
+  try {
+    /**
+     * 正则说明：
+     * - (\d{4}年)   匹配年份，例如 "2025年"
+     * - (\d{1,2}月\d{1,2}日)  匹配月日，例如 "6月2日" 或 "12月25日"
+     * - <a href='\/\d+__lishishangdejintianchaxun\/' target='_blank'>(.*?)<\/a>
+     *     匹配链接中的事件描述，捕获文本内容到 group[3]
+     *   （注意：href 的数字部分至少要有一位）
+     */
+    const regex = /(\d{4}年)(\d{1,2}月\d{1,2}日)\s*<a\s+href='\/\d+__lishishangdejintianchaxun\/'\s+target='_blank'>(.*?)<\/a>/g;
+    let match;
+
+    // 使用正则循环匹配，直到没有下一条为止
+    while ((match = regex.exec(html)) !== null) {
+      // match[1] = "2025年"；match[2] = "6月2日"；match[3] = "事件描述"
+      const yearText = match[1].trim();
+      const dateText = match[2].trim();
+      const description = match[3].trim();
+
+      // 简单校验：年份要四位数字 + "年"，月日要包含 "月" 和 "日"
+      if (!/^\d{4}年$/.test(yearText) || !/^\d{1,2}月\d{1,2}日$/.test(dateText)) {
+        // 跳过不符合预期格式的条目
+        continue;
+      }
+
+      // 最终格式示例："2025年 6月2日：某某大事件"
+      events.push(`${yearText} ${dateText}：${description}`);
+      // 如果已经收集够指定数量，可以提前退出循环
+      if (events.length >= count) break;
+    }
+  } catch (e) {
+    console.log('解析 HTML 时发生异常：', e);
+    // 出现任何异常都退出并返回空内容
     $done({});
+    return;
   }
+
+  // 如果没匹配到任何事件，则直接返回空
+  if (events.length === 0) {
+    $done({});
+    return;
+  }
+
+  // 将事件数组拼接成多行文本，去掉两端多余空白
+  const notificationText = events.join("\n").trim();
+
+  // 构造最终返回给宿主环境的通知体
+  const body = {
+    title: "📓 历史上的今天",       // 通知标题
+    content: notificationText,     // 通知内容
+    icon: icon,                    // 通知图标（带默认）
+    "icon-color": iconColor,       // 通知图标颜色（带默认）
+    count: events.length           // 实际返回的事件条数
+  };
+
+  $done(body);
 }
