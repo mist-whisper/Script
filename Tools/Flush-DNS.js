@@ -1,12 +1,12 @@
 // https://raw.githubusercontent.com/Rabbit-Spec/Surge/Master/Module/Panel/Flush-DNS/Moore/Flush-DNS.js
 
 /*
- *  Flush-DNS.js（增强版）
+ *  Flush-DNS.js（增强版 v2.2）
  *  原作者：@zZPiglet
  *  修改：@Rabbit-Spec
  *  二次优化：wish
  *  更新时间：2025.06.02
- *  版本：2.1
+ *  版本：2.2
  *
  *  功能说明：
  *  - 在 Surge 面板中显示当前 DNS 解析延迟（毫秒）。
@@ -97,7 +97,8 @@
     // -------------------- 4. 获取当前 DNS 延迟 --------------------
     let delayText = "N/A";  // 如果获取失败，保持为 "N/A"
     try {
-        let delayResp = await httpAPI("/v1/test/dns_delay", "GET");
+        // 注意：不要在此处传入 "GET"，要使用默认的 POST 调用
+        let delayResp = await httpAPI("/v1/test/dns_delay");
         if (delayResp && typeof delayResp.delay === "number") {
             // delayResp.delay 单位为秒，乘以1000 转换成毫秒，并四舍五入到整数
             delayText = `${Math.round(delayResp.delay * 1000)}ms`;
@@ -145,7 +146,7 @@
 /**
  * 使用 Promise 封装 Surge 内置的 $httpAPI，方便以 async/await 调用
  * @param {string} path   - Surge 本地 API 路径，如 "/v1/dns"
- * @param {string} method - HTTP 方法，"GET" 或 "POST"
+ * @param {string} method - HTTP 方法，"GET" 或 "POST"。默认不传则为 "POST"
  * @param {Object|null} body - 可选的请求体（只有 POST 时才需要）
  * @returns {Promise<Object>} - 返回解析后的 JSON 对象
  */
@@ -153,11 +154,9 @@ function httpAPI(path = "", method = "POST", body = null) {
     return new Promise((resolve, reject) => {
         try {
             $httpAPI(method, path, body, (result) => {
-                // 如果 Surge 返回的 result 包含错误信息，可以在这里判断
                 resolve(result);
             });
         } catch (e) {
-            // 捕获意外异常，并传递给调用方
             reject(e);
         }
     });
