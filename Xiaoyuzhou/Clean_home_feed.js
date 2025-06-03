@@ -1,4 +1,4 @@
-// 净化首页模块，包括播客寻宝、分类、朋友在听、付费精品节目单等
+// 净化首页模块，包括播客寻宝、分类、朋友在听、付费精品节目单、听清信号的人等
 
 const DEBUG = false; // 设置为 true 启用调试日志
 
@@ -11,7 +11,7 @@ if (body.startsWith("{") || body.startsWith("[")) {
   try {
     let obj = JSON.parse(body);
 
-    const filteredTitles = ["分类", "朋友在听", "新节目广场", "付费精品节目单"];
+    const filteredTitles = ["分类", "朋友在听", "新节目广场", "付费精品节目单", "听清信号的人"];
 
     if (Array.isArray(obj.data)) {
       obj.data = obj.data.filter(module => {
