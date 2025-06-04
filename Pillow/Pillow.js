@@ -9,7 +9,7 @@ try {
   // 尝试解析原始 JSON
   let objc = JSON.parse(body);
 
-  // 构造伪造的会员数据
+  // 构造会员数据
   objc = {
     "request_date": "2023-09-26T12:00:00Z",
     "request_date_ms": 1837536263,
