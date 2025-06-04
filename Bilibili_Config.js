@@ -1,6 +1,6 @@
-// BiliBili 配置读取与交互设置
+// BiliBili 配置助手
 
-//  工具函数
+// 工具函数
 function readConfig(key, defaultVal = "") {
   const val = $persistentStore.read(key);
   return val !== null && val !== undefined ? val : defaultVal;
@@ -10,7 +10,7 @@ function writeConfig(key, val) {
   return $persistentStore.write(val, key);
 }
 
-//  初始化默认配置
+// 默认值初始化
 const defaults = {
   // DailyBonus
   "@bilibili_daily_bonus.Settings.exec": "5",
@@ -33,23 +33,53 @@ const defaults = {
   "@BiliBili.Modified.Settings.Private.like": "",
 };
 
-// 初始化所有配置项
+// 初始化默认值
 for (const [key, def] of Object.entries(defaults)) {
   if ($persistentStore.read(key) === null) {
     writeConfig(key, def);
   }
 }
 
-//  主逻辑
+// 皮肤选项
+const skinOptions = [
+  { key: "2529", label: "初音未来-日版" },
+  { key: "2530", label: "初音未来-夜版" },
+  { key: "32264", label: "EveOneCat2" },
+  { key: "33459", label: "有栖mana" },
+  { key: "34813", label: "嘉然装扮2.0(1)" },
+  { key: "39859", label: "眠眠兔" },
+  { key: "50605", label: "铃芽之旅" },
+  { key: "52484", label: "JDG坚定信仰" },
+  { key: "1682863365001", label: "小猫咪金的没烦恼" },
+];
+
+// 加载动画选项
+const loadOptions = [
+  { key: "2531", label: "初音未来13周年" },
+  { key: "32263", label: "EveOneCat2" },
+  { key: "33460", label: "有栖mana" },
+  { key: "49391", label: "提摩西小队第二弹" },
+  { key: "1680172285001", label: "豆豆摇头晃脑" }
+];
+
+// 菜单选择器
+async function selectFromList(title, options) {
+  const menu = options.map(opt => opt.label).join("\n");
+  const input = await $input(`请选择 ${title}`, title, "", menu);
+  const found = options.find(opt => opt.label === input);
+  return found ? found.key : null;
+}
+
+// 主入口
 async function main() {
   const menu = [
     "🪙 设置每日任务（投币/充电）",
-    " 设置皮肤与动画",
-    " 设置用户信息（大会员、粉丝等）",
-    " 查看当前配置",
+    "🎨 设置皮肤与动画",
+    "👑 设置用户信息（大会员、粉丝等）",
+    "🔍 查看当前配置",
   ];
 
-  const idx = await $input("选择操作：", "BiliBili 配置", "", menu.join("\n"));
+  const idx = await $input("选择操作：", "BiliBili 配置中心", "", menu.join("\n"));
   if (idx === undefined) return $done();
 
   if (idx.includes("每日任务")) {
@@ -61,19 +91,19 @@ async function main() {
     writeConfig("@bilibili_daily_bonus.Settings.charge_mid", mid);
     writeConfig("@bilibili_daily_bonus.Settings.bp_num", bp);
 
-    $notify("每日任务配置已保存", "", `投币：${exec} | 充电B币：${bp}`);
+    $notify("✅ 每日任务配置已保存", "", `投币：${exec} | 充电B币：${bp}`);
   }
 
   else if (idx.includes("皮肤")) {
-    const skin = await $input("皮肤ID", "设置皮肤", readConfig("@BiliBili.Modified.Settings.Skin.user_equip"));
-    const load = await $input("加载动画ID", "设置加载动画", readConfig("@BiliBili.Modified.Settings.Skin.load_equip"));
+    const selectedSkin = await selectFromList("皮肤", skinOptions);
+    const selectedLoad = await selectFromList("加载动画", loadOptions);
     const enable = await $input("是否启用修改功能（true/false）", "总开关", readConfig("@BiliBili.Modified.Settings.Switch"));
 
-    writeConfig("@BiliBili.Modified.Settings.Skin.user_equip", skin);
-    writeConfig("@BiliBili.Modified.Settings.Skin.load_equip", load);
+    if (selectedSkin) writeConfig("@BiliBili.Modified.Settings.Skin.user_equip", selectedSkin);
+    if (selectedLoad) writeConfig("@BiliBili.Modified.Settings.Skin.load_equip", selectedLoad);
     writeConfig("@BiliBili.Modified.Settings.Switch", enable);
 
-    $notify("皮肤与动画配置已保存", "", `皮肤ID: ${skin} | 加载动画: ${load}`);
+    $notify("🎨 皮肤与动画配置已保存", "", `皮肤ID: ${selectedSkin} | 动画ID: ${selectedLoad}`);
   }
 
   else if (idx.includes("用户信息")) {
@@ -91,14 +121,14 @@ async function main() {
     writeConfig("@BiliBili.Modified.Settings.Private.level", level);
     writeConfig("@BiliBili.Modified.Settings.Private.like", like);
 
-    $notify("用户数据配置已保存", "", `VIP: ${vip} | 等级: ${level} | 粉丝: ${follower}`);
+    $notify("👑 用户信息配置已保存", "", `VIP: ${vip} | 等级: ${level} | 粉丝: ${follower}`);
   }
 
   else if (idx.includes("查看")) {
     const content = Object.entries(defaults)
       .map(([k, _]) => `${k}: ${readConfig(k)}`)
       .join("\n");
-    $notify("当前配置：", "", content);
+    $notify("📦 当前配置：", "", content);
   }
 
   $done();
