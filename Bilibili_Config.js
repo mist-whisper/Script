@@ -13,24 +13,24 @@ function writeConfig(key, val) {
 // 默认值初始化
 const defaults = {
   // DailyBonus
-  "@bilibili_daily_bonus.Settings.exec": "5",
-  "@bilibili_daily_bonus.Settings.charge_mid": "",
-  "@bilibili_daily_bonus.Settings.bp_num": "5",
+  "exec": "5",
+  "charge_mid": "",
+  "bp_num": "5",
 
   // Modified - Switch
-  "@BiliBili.Modified.Settings.Switch": "true",
+  "Settings.Switch": "true",
 
   // Modified - Skin & Animation
-  "@BiliBili.Modified.Settings.Skin.user_equip": "1682863365001",
-  "@BiliBili.Modified.Settings.Skin.load_equip": "32263",
+  "Skin.user_equip": "1682863365001",
+  "Skin.load_equip": "32263",
 
   // Modified - Private
-  "@BiliBili.Modified.Settings.Private.vip": "false",
-  "@BiliBili.Modified.Settings.Private.coin": "",
-  "@BiliBili.Modified.Settings.Private.bcoin": "",
-  "@BiliBili.Modified.Settings.Private.follower": "",
-  "@BiliBili.Modified.Settings.Private.level": "",
-  "@BiliBili.Modified.Settings.Private.like": "",
+  "Private.vip": "false",
+  "Private.coin": "",
+  "Private.bcoin": "",
+  "Private.follower": "",
+  "Private.level": "",
+  "Private.like": "",
 };
 
 // 初始化默认值
@@ -83,13 +83,13 @@ async function main() {
   if (idx === undefined) return $done();
 
   if (idx.includes("每日任务")) {
-    const exec = await $input("每日投币次数", "设置", readConfig("@bilibili_daily_bonus.Settings.exec"));
-    const mid = await $input("充电用户UID（留空为自己）", "设置", readConfig("@bilibili_daily_bonus.Settings.charge_mid"));
-    const bp = await $input("充电B币数量", "设置", readConfig("@bilibili_daily_bonus.Settings.bp_num"));
+    const exec = await $input("每日投币次数", "设置", readConfig("exec"));
+    const mid = await $input("充电用户UID（留空为自己）", "设置", readConfig("charge_mid"));
+    const bp = await $input("充电B币数量", "设置", readConfig("bp_num"));
 
-    writeConfig("@bilibili_daily_bonus.Settings.exec", exec);
-    writeConfig("@bilibili_daily_bonus.Settings.charge_mid", mid);
-    writeConfig("@bilibili_daily_bonus.Settings.bp_num", bp);
+    writeConfig("exec", exec);
+    writeConfig("charge_mid", mid);
+    writeConfig("bp_num", bp);
 
     $notify("✅ 每日任务配置已保存", "", `投币：${exec} | 充电B币：${bp}`);
   }
@@ -97,29 +97,29 @@ async function main() {
   else if (idx.includes("皮肤")) {
     const selectedSkin = await selectFromList("皮肤", skinOptions);
     const selectedLoad = await selectFromList("加载动画", loadOptions);
-    const enable = await $input("是否启用修改功能（true/false）", "总开关", readConfig("@BiliBili.Modified.Settings.Switch"));
+    const enable = await $input("是否启用修改功能（true/false）", "总开关", readConfig("Settings.Switch"));
 
-    if (selectedSkin) writeConfig("@BiliBili.Modified.Settings.Skin.user_equip", selectedSkin);
-    if (selectedLoad) writeConfig("@BiliBili.Modified.Settings.Skin.load_equip", selectedLoad);
-    writeConfig("@BiliBili.Modified.Settings.Switch", enable);
+    if (selectedSkin) writeConfig("Skin.user_equip", selectedSkin);
+    if (selectedLoad) writeConfig("Skin.load_equip", selectedLoad);
+    writeConfig("Settings.Switch", enable);
 
     $notify("🎨 皮肤与动画配置已保存", "", `皮肤ID: ${selectedSkin} | 动画ID: ${selectedLoad}`);
   }
 
   else if (idx.includes("用户信息")) {
-    const vip = await $input("是否模拟大会员（true/false）", "设置", readConfig("@BiliBili.Modified.Settings.Private.vip"));
-    const coin = await $input("硬币数", "设置", readConfig("@BiliBili.Modified.Settings.Private.coin"));
-    const bcoin = await $input("B币数", "设置", readConfig("@BiliBili.Modified.Settings.Private.bcoin"));
-    const follower = await $input("粉丝数", "设置", readConfig("@BiliBili.Modified.Settings.Private.follower"));
-    const level = await $input("用户等级（≤6）", "设置", readConfig("@BiliBili.Modified.Settings.Private.level"));
-    const like = await $input("被赞次数", "设置", readConfig("@BiliBili.Modified.Settings.Private.like"));
+    const vip = await $input("是否模拟大会员（true/false）", "设置", readConfig("Private.vip"));
+    const coin = await $input("硬币数", "设置", readConfig("Private.coin"));
+    const bcoin = await $input("B币数", "设置", readConfig("Private.bcoin"));
+    const follower = await $input("粉丝数", "设置", readConfig("Private.follower"));
+    const level = await $input("用户等级（≤6）", "设置", readConfig("Private.level"));
+    const like = await $input("被赞次数", "设置", readConfig("Private.like"));
 
-    writeConfig("@BiliBili.Modified.Settings.Private.vip", vip);
-    writeConfig("@BiliBili.Modified.Settings.Private.coin", coin);
-    writeConfig("@BiliBili.Modified.Settings.Private.bcoin", bcoin);
-    writeConfig("@BiliBili.Modified.Settings.Private.follower", follower);
-    writeConfig("@BiliBili.Modified.Settings.Private.level", level);
-    writeConfig("@BiliBili.Modified.Settings.Private.like", like);
+    writeConfig("Private.vip", vip);
+    writeConfig("Private.coin", coin);
+    writeConfig("Private.bcoin", bcoin);
+    writeConfig("Private.follower", follower);
+    writeConfig("Private.level", level);
+    writeConfig("Private.like", like);
 
     $notify("👑 用户信息配置已保存", "", `VIP: ${vip} | 等级: ${level} | 粉丝: ${follower}`);
   }
