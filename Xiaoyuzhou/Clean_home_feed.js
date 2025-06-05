@@ -9,19 +9,20 @@ try {
 
   if (url.includes("/v1/discovery-feed/list")) {
     if (obj?.data) {
+      // 旧结构兼容处理
       if (Array.isArray(obj.data)) {
-        // 旧逻辑，直接清空第一个元素
         if (obj.data.length > 0) {
           obj.data[0] = {};
         }
-      } else if (obj.data.sections && Array.isArray(obj.data.sections)) {
-        // 遍历所有 sections，过滤 items
+      }
+
+      // 新结构处理：遍历所有 sections[].items[]
+      if (Array.isArray(obj.data.sections)) {
         obj.data.sections.forEach(section => {
           if (Array.isArray(section.items)) {
-            section.items = section.items.filter(item => {
-              // 过滤所有 type 为 EDITORS_COVER_BANNER 或指定 id 的项
-              return item?.type !== "EDITORS_COVER_BANNER" && item?.id !== "68368946d751e070efd98f0a";
-            });
+            section.items = section.items.filter(item =>
+              item?.id !== "68368946d751e070efd98f0a" && item?.type !== "EDITORS_COVER_BANNER"
+            );
           }
         });
       }
