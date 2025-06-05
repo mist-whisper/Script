@@ -8,24 +8,19 @@ try {
   let obj = JSON.parse($response.body);
 
   if (url.includes("/v1/discovery-feed/list")) {
-    if (obj && Array.isArray(obj.data)) {
-      // 打印原始数据确认结构
-      console.log("原始数据项数量:", obj.data.length);
+    if (
+      obj.data &&
+      Array.isArray(obj.data.sections) &&
+      obj.data.sections.length > 0 &&
+      Array.isArray(obj.data.sections[0].items)
+    ) {
+      // 清空第一项（如果需要保留此逻辑）
+      obj.data.sections[0].items[0] = {};
 
-      // 打印每项 type，确保能看到 EDITORS_COVER_BANNER
-      obj.data.forEach((item, index) => {
-        console.log(`第${index}项 type:`, item?.type);
-      });
-
-      // ✅ 清空第一项（保留原始行为）
-      obj.data[0] = {};
-
-      // ✅ 过滤 EDITORS_COVER_BANNER 项
-      obj.data = obj.data.filter(item => item?.type !== "EDITORS_COVER_BANNER");
-
-      console.log("过滤后数据项数量:", obj.data.length);
-    } else {
-      console.log("obj.data 不是数组，结构为：", JSON.stringify(obj));
+      // 过滤掉 type 为 EDITORS_COVER_BANNER 的项目
+      obj.data.sections[0].items = obj.data.sections[0].items.filter(
+        item => item?.type !== "EDITORS_COVER_BANNER"
+      );
     }
   }
 
