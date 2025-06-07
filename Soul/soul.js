@@ -27,12 +27,12 @@ try {
 
   if (isPath("/planet/config")) {
     // 🌍 星球实验室模块处理
-    const hideSoulMatch = shouldHide("hideSoulMatch");
-    const hideVoiceMatch = shouldHide("hideVoiceMatch");
-    const hidePartyMatch = shouldHide("hidePartyMatch");
-    const hideMasked = shouldHide("hideMasked");
-    const hideMaskedMatch = shouldHide("hideMaskedMatch");
-    const hidePlanet = shouldHide("hidePlanet");
+    const hideSoulMatch = shouldHide("SoulMatch");
+    const hideVoiceMatch = shouldHide("VoiceMatch");
+    const hidePartyMatch = shouldHide("PartyMatch");
+    const hideMasked = shouldHide("Masked");
+    const hideMaskedMatch = shouldHide("MaskedMatch");
+    const hidePlanet = shouldHide("Planet");
 
     // sortId 映射表（核心功能卡片 ID）
     const FEATURE_IDS = {
