@@ -1,20 +1,17 @@
-//  soul.js - 优化版 by 树先生
-//  更新时间：2025-06
-//  功能：去广告、解锁限制、控制卡片展示
-//  兼容：Surge / Loon / Quantumult X
-//  使用时传入参数：soulMatch=true&planet=true 等
-//  ⚠️ 本脚本仅用于学习交流，切勿用于非法用途！
+//  soul.js - 开关逻辑统一为 “true” 表示启用
+//  支持 Surge / Loon / Quantumult X
+//  传参方式：argument=soulMatch=true&planet=true
 
 let url = $request.url;
 let body = $response.body;
 let obj = JSON.parse(body);
 
-// 将参数值 "true" 转换为布尔 true，避免 "false" 被当作真值
-function getArgBoolean(key) {
+// ✅ 所有开关逻辑：只有设置为 "true" 才启用
+function isEnabled(key) {
   return $argument[key] === "true";
 }
 
-// ========== 路由判断与处理 ==========
+// ========= 主路由逻辑 =========
 if (url.includes("/chat/limitInfo")) {
   handleLimitInfo(obj);
 } else if (url.includes("/planet/config")) {
@@ -37,11 +34,10 @@ if (url.includes("/chat/limitInfo")) {
   handleSnapchatUrl(obj);
 }
 
-// 输出响应
 body = JSON.stringify(obj);
 $done({ body });
 
-// ========== 模块函数 ========== //
+// ========= 模块处理函数 =========
 
 function handleLimitInfo(obj) {
   delete obj.data.subMsg;
@@ -66,7 +62,9 @@ function handlePlanetConfig(obj) {
 
   let resultArray = [];
   for (const key in sortIdMap) {
-    if (getArgBoolean(key)) resultArray.push(sortIdMap[key]);
+    if (isEnabled(key)) {
+      resultArray.push(sortIdMap[key]);
+    }
   }
 
   obj.data.showRedMind = false;
@@ -74,11 +72,13 @@ function handlePlanetConfig(obj) {
   obj.data.gameInfo.showGameCard = false;
   obj.data.showLuckyBag = false;
 
-  // 保留指定卡片
-  obj.data.coreCards = obj.data.coreCards.filter(card => resultArray.includes(card.sortId));
+  let filtered = obj.data.coreCards.filter(card => resultArray.includes(card.sortId));
+  if (filtered.length > 0) {
+    obj.data.coreCards = filtered;
+  }
+
   obj.data.gameInfo.gameCards = [];
 
-  // 精简卡片内容
   obj.data.coreCards.forEach(card => {
     card.showLuckyBag = false;
     card.showRedMind = false;
@@ -118,7 +118,9 @@ function handleRoomTagInfo(obj) {
 
   let resultArray = [];
   for (const key in idMap) {
-    if (getArgBoolean(key)) resultArray.push(idMap[key]);
+    if (isEnabled(key)) {
+      resultArray.push(idMap[key]);
+    }
   }
 
   obj.data.res = obj.data.res.filter(t => resultArray.includes(t.id));
