@@ -51,16 +51,23 @@ if (url.indexOf("/chat/limitInfo") != -1) {
     delete obj.data.type;
     obj.data.limit = false;
 } 
-// 星球配置处理
+// 星球配置处理 - 重点改进此处
 else if (url.indexOf("/planet/config") != -1) {
     log("处理星球配置...");
+    
+    // 获取所有开关参数
     let soulMatch = getArgument("soulMatch");
     let voiceMatch = getArgument("voiceMatch");
     let partyMatch = getArgument("partyMatch");
     let masked = getArgument("masked");
     let maskedMatch = getArgument("maskedMatch");
     let planet = getArgument("planet");
+    
+    // 打印参数值用于调试
+    log(`参数值: soulMatch=${soulMatch}, voiceMatch=${voiceMatch}, partyMatch=${partyMatch}, 
+        masked=${masked}, maskedMatch=${maskedMatch}, planet=${planet}`);
 
+    // 定义功能ID映射
     const sortIdMap = {
         soulMatch: 1,
         voiceMatch: 2,
@@ -70,6 +77,7 @@ else if (url.indexOf("/planet/config") != -1) {
         planet: 10
     };
 
+    // 构建允许显示的功能ID列表
     let resultArray = [];
     if (shouldEnable(soulMatch)) resultArray.push(sortIdMap.soulMatch);
     if (shouldEnable(voiceMatch)) resultArray.push(sortIdMap.voiceMatch);
@@ -78,11 +86,27 @@ else if (url.indexOf("/planet/config") != -1) {
     if (shouldEnable(maskedMatch)) resultArray.push(sortIdMap.maskedMatch);
     if (shouldEnable(planet)) resultArray.push(sortIdMap.planet);
     
+    // 打印筛选结果用于调试
+    log("允许显示的功能ID: " + resultArray.join(","));
+    
+    // 筛选核心卡片
+    const originalCoreCards = [...obj.data.coreCards]; // 备份原始数据用于调试
+    obj.data.coreCards = obj.data.coreCards.filter(card => {
+        const shouldKeep = resultArray.includes(card.sortId);
+        log(`卡片: sortId=${card.sortId}, title=${card.title || "未知"}, 保留=${shouldKeep}`);
+        return shouldKeep;
+    });
+    
+    // 打印筛选前后的卡片数量
+    log(`核心卡片: 原始数量=${originalCoreCards.length}, 筛选后数量=${obj.data.coreCards.length}`);
+    
+    // 其他UI清理操作
     obj.data.showRedMind = false;
     obj.data.chatRoomInfo.showChatRoom = false;
     obj.data.gameInfo.showGameCard = false;
-    obj.data.coreCards = obj.data.coreCards.filter(card => resultArray.includes(card.sortId));
     obj.data.gameInfo.gameCards = [];
+    
+    // 清理卡片样式
     obj.data.coreCards.forEach(card => {
         if (card.hasOwnProperty('showLuckyBag')) card.showLuckyBag = false;
         card.showRedMind = false;
