@@ -1,9 +1,7 @@
 /*
- * Soul++ 增强脚本 - 优化版
- * 功能：精简 Soul 应用界面，移除干扰元素
- * 说明：通过 URL 匹配与参数开关进行模块精简
- * 作者：树先生
- * 更新时间：2025-06-07
+ * Soul++ 增强脚本 v2.1
+ * 功能：精简 Soul 界面元素，支持布尔开关控制隐藏模块
+ * 作者：wish
  */
 
 let url = $request?.url;
@@ -19,25 +17,16 @@ try {
     return String(value).toLowerCase() === "true";
   };
 
-  // 是否隐藏模块（通过参数名判断）
+  // 统一读取隐藏开关
   const shouldHide = (paramName, defaultValue = false) => {
     return parseBool($argument?.[paramName], defaultValue);
   };
 
-  // URL 路径匹配工具函数
+  // 路径判断
   const isPath = (keyword) => url.includes(keyword);
 
-  /* ---------- 模块匹配处理 ---------- */
-
-  if (isPath("/chat/limitInfo")) {
-    // 聊天限制信息精简
-    const data = obj.data || {};
-    ["subMsg", "extMsg", "abValue", "freeEquityStatus", "msg", "remainFreeCount", "type"].forEach(k => delete data[k]);
-    data.limit = false;
-
-  } else if (isPath("/planet/config")) {
-    // 星球主界面入口卡片处理
-
+  if (isPath("/planet/config")) {
+    // 🌍 星球实验室模块处理
     const hideSoulMatch = shouldHide("hideSoulMatch");
     const hideVoiceMatch = shouldHide("hideVoiceMatch");
     const hidePartyMatch = shouldHide("hidePartyMatch");
@@ -45,37 +34,29 @@ try {
     const hideMaskedMatch = shouldHide("hideMaskedMatch");
     const hidePlanet = shouldHide("hidePlanet");
 
-    // 功能 ID 映射
+    // sortId 映射表（核心功能卡片 ID）
     const FEATURE_IDS = {
       soulMatch: 1,
       voiceMatch: 2,
       partyMatch: 3,
       masked: 4,
       maskedMatch: 9,
-      planet: 10
+      planet: 10,
     };
 
-    // 要保留的卡片 sortId 列表
-    const visibleFeatures = [];
-    if (!hideSoulMatch) visibleFeatures.push(FEATURE_IDS.soulMatch);
-    if (!hideVoiceMatch) visibleFeatures.push(FEATURE_IDS.voiceMatch);
-    if (!hidePartyMatch) visibleFeatures.push(FEATURE_IDS.partyMatch);
-    if (!hideMasked) visibleFeatures.push(FEATURE_IDS.masked);
-    if (!hideMaskedMatch) visibleFeatures.push(FEATURE_IDS.maskedMatch);
-    if (!hidePlanet) visibleFeatures.push(FEATURE_IDS.planet);
+    // 构建应保留的 sortId 列表
+    const visibleSortIds = [];
+    if (!hideSoulMatch) visibleSortIds.push(FEATURE_IDS.soulMatch);
+    if (!hideVoiceMatch) visibleSortIds.push(FEATURE_IDS.voiceMatch);
+    if (!hidePartyMatch) visibleSortIds.push(FEATURE_IDS.partyMatch);
+    if (!hideMasked) visibleSortIds.push(FEATURE_IDS.masked);
+    if (!hideMaskedMatch) visibleSortIds.push(FEATURE_IDS.maskedMatch);
+    if (!hidePlanet) visibleSortIds.push(FEATURE_IDS.planet);
 
-    // 通用功能开关
-    obj.data.showRedMind = false;
-    obj.data.chatRoomInfo = obj.data.chatRoomInfo || {};
-    obj.data.chatRoomInfo.showChatRoom = false;
-    obj.data.gameInfo = obj.data.gameInfo || {};
-    obj.data.gameInfo.showGameCard = false;
-    obj.data.showLuckyBag = false;
-
-    // 过滤主卡片 coreCards
-    if (Array.isArray(obj.data.coreCards)) {
+    // 🌐 清理字段及过滤 coreCards
+    if (Array.isArray(obj.data?.coreCards)) {
       obj.data.coreCards = obj.data.coreCards.filter(card =>
-        visibleFeatures.includes(card.sortId)
+        visibleSortIds.includes(card.sortId)
       );
 
       obj.data.coreCards.forEach(card => {
@@ -87,113 +68,97 @@ try {
       });
     }
 
-    // 清空游戏卡片
-    obj.data.gameInfo.gameCards = [];
+    obj.data.showRedMind = false;
+    obj.data.showLuckyBag = false;
 
-  } else if (isPath("/chatroom/chatClassifyRoomList")) {
-    // 派对首页广告横幅
+    if (obj.data.chatRoomInfo) obj.data.chatRoomInfo.showChatRoom = false;
+    if (obj.data.gameInfo) {
+      obj.data.gameInfo.showGameCard = false;
+      obj.data.gameInfo.gameCards = [];
+    }
+  }
+
+  // 其他接口精简逻辑（与你原脚本一致，可酌情删改）
+  else if (isPath("/chat/limitInfo")) {
+    const fields = ["subMsg", "extMsg", "abValue", "freeEquityStatus", "msg", "remainFreeCount", "type"];
+    fields.forEach(field => delete obj.data?.[field]);
+    obj.data.limit = false;
+  }
+
+  else if (isPath("/chatroom/chatClassifyRoomList")) {
     obj.data.positionContentRespList = [];
+  }
 
-  } else if (isPath("/square/header/tabs")) {
-    // 广场顶部标签页
+  else if (isPath("/square/header/tabs")) {
     if (Array.isArray(obj.data)) {
-      obj.data.forEach(tab => tab.unreadFlag = 0);
-      obj.data = obj.data.filter(tab => tab.pageId === "PostSquare_Recommend");
+      obj.data.forEach(card => (card.unreadFlag = 0));
+      obj.data = obj.data.filter(item => item.pageId === "PostSquare_Recommend");
     }
+  }
 
-  } else if (isPath("/homepage/metrics")) {
-    // 主页推荐信息、点赞等
-    const metrics = obj.data || {};
-    metrics.recentViewNum = 0;
-    metrics.showTipsCard = false;
-    metrics.showMetric = false;
-    metrics.hasHomePageLiked = false;
-    if (metrics.homePageLikedMetric) {
-      metrics.homePageLikedMetric.addNum = 0;
-      metrics.homePageLikedMetric.likedTotalNum = 0;
-      metrics.homePageLikedMetric.hasShowHistoryDynamic = false;
+  else if (isPath("/homepage/metrics")) {
+    const d = obj.data;
+    d.recentViewNum = 0;
+    d.showTipsCard = false;
+    d.showMetric = false;
+    d.hasHomePageLiked = false;
+    if (d.homePageLikedMetric) {
+      d.homePageLikedMetric.addNum = 0;
+      d.homePageLikedMetric.likedTotalNum = 0;
+      d.homePageLikedMetric.hasShowHistoryDynamic = false;
     }
+  }
 
-  } else if (isPath("relation/guideUserList")) {
-    // 引导用户推荐
+  else if (isPath("relation/guideUserList")) {
     obj.data.userDTOList = [];
+  }
 
-  } else if (isPath("/homepage/tabs/v2")) {
-    // 主页标签页隐藏
+  else if (isPath("/homepage/tabs/v2")) {
     obj.data.selectedTagPool = {};
-    const HIDDEN_TABS = ["STAR_TRAILS"];
+    const hiddenTabs = ["STAR_TRAILS"];
     if (Array.isArray(obj.data.headTabDTOList)) {
-      obj.data.headTabDTOList = obj.data.headTabDTOList.filter(t =>
-        !HIDDEN_TABS.includes(t.tabCode)
-      );
+      obj.data.headTabDTOList = obj.data.headTabDTOList.filter(t => !hiddenTabs.includes(t.tabCode));
     }
+  }
 
-  } else if (isPath("/chatroom/getRoomTagInfo")) {
-    // 聊天室标签页精简
-
-    const hideHot = shouldHide("hideHotTag");
-    const hideAll = shouldHide("hideAllTag");
-    const hideEmotion = shouldHide("hideEmotionTag");
-    const hidePersonal = shouldHide("hidePersonalTag");
-    const hidePlay = shouldHide("hidePlayTag");
-    const hideInterest = shouldHide("hideInterestTag");
-    const hideArgue = shouldHide("hideArgueTag");
-    const hideStory = shouldHide("hideStoryTag");
-    const hideChat = shouldHide("hideChatTag");
-    const hideHeart = shouldHide("hideHeartTag");
-
+  else if (isPath("/chatroom/getRoomTagInfo")) {
     const TAG_IDS = {
-      hot: 11,
-      all: 0,
-      emotion: 43,
-      personal: 44,
-      play: 12,
-      interest: 10,
-      argue: 6,
-      story: 5,
-      chat: 4,
-      heart: 2
+      hot: 11, all: 0, emotion: 43, personal: 44, play: 12,
+      interest: 10, argue: 6, story: 5, chat: 4, heart: 2,
     };
 
-    const visibleTags = [];
-    if (!hideHot) visibleTags.push(TAG_IDS.hot);
-    if (!hideAll) visibleTags.push(TAG_IDS.all);
-    if (!hideEmotion) visibleTags.push(TAG_IDS.emotion);
-    if (!hidePersonal) visibleTags.push(TAG_IDS.personal);
-    if (!hidePlay) visibleTags.push(TAG_IDS.play);
-    if (!hideInterest) visibleTags.push(TAG_IDS.interest);
-    if (!hideArgue) visibleTags.push(TAG_IDS.argue);
-    if (!hideStory) visibleTags.push(TAG_IDS.story);
-    if (!hideChat) visibleTags.push(TAG_IDS.chat);
-    if (!hideHeart) visibleTags.push(TAG_IDS.heart);
-
-    if (obj.data?.res && Array.isArray(obj.data.res)) {
-      obj.data.res = obj.data.res.filter(tag => visibleTags.includes(tag.id));
-      obj.data.res.forEach(tag => {
-        if (tag.iconConfig !== null) tag.iconConfig = null;
-      });
+    const visibleTagIds = [];
+    for (let key in TAG_IDS) {
+      if (!shouldHide(`hide${key.charAt(0).toUpperCase()}${key.slice(1)}Tag`)) {
+        visibleTagIds.push(TAG_IDS[key]);
+      }
     }
 
-  } else if (isPath("/snapchat/url")) {
-    // 图片预览推送通知
+    if (Array.isArray(obj.data?.res)) {
+      obj.data.res = obj.data.res.filter(t => visibleTagIds.includes(t.id));
+      obj.data.res.forEach(tag => tag.iconConfig = null);
+    }
+  }
+
+  else if (isPath("/snapchat/url")) {
     try {
       const imageUrl = obj.data?.url;
       if (typeof imageUrl === "string") {
         $notification.post("图片通知", "查看图片", "点击查看详情", {
           "open-url": imageUrl,
-          "media-url": imageUrl
+          "media-url": imageUrl,
         });
       }
     } catch (e) {
-      console.log(`图片处理错误: ${e.message}`);
+      console.log("图片处理错误: " + e.message);
     }
   }
 
-  // 返回处理结果
+  // 返回最终修改结果
   body = JSON.stringify(obj);
   $done({ body });
 
 } catch (err) {
-  console.log("脚本异常:", err.message);
+  console.log("脚本处理错误: " + err.message);
   $done({});
 }
