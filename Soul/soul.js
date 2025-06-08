@@ -1,222 +1,237 @@
-// 当前文件内容仅供个人学习和研究使用，若使用过程中发生任何问题概不负责
+/** 配置区：开关与 ID 列表，按需修改即可 */
+const config = {
+  enableChatLimitUnlock: true,                // 解锁聊天次数限制
+  enablePlanetConfig: true,                   // 应用星球配置过滤
+  enablePartyAdBlock: true,                   // 屏蔽派对/聊天室广告
+  enableSquareTabFilter: true,                // 精简广场标签
+  enableHomepageMetricsReset: true,           // 隐藏/重置首页指标
+  enableGuideClear: true,                     // 清空新手引导用户列表
+  enableHomepageTabFilter: true,              // 精简首页标签
+  enableRoomTagFilter: true,                  // 精选聊天房间类型
+  enableSnapchatNotify: true,                 // 图片预览本地通知
 
-// ===== 平台检测与兼容层 =====
-const isLoon = typeof $loon !== 'undefined';
-const isSurge = typeof $httpClient !== 'undefined' && !isLoon;
+  // 允许显示的星球卡片 ID 列表（示例）
+  allowedPlanetCardIds: [101, 102, 103, 104],
 
-// 日志函数 - 根据平台选择输出方式
-function log(message) {
-    if (isLoon) $loon.log(message);
-    if (isSurge) console.log(message);
-}
+  // 广场页保留的 tab id 列表
+  allowedSquareTabIds: [1, 2, 3],
 
-// 参数获取函数 - 兼容 Loon 和 Surge
-function getArgument(key) {
-    if (isLoon) {
-        return $config[key] || "";
-    } else if (isSurge) {
-        return ($argument && $argument[key]) ? $argument[key] : "";
-    }
-    return "";
-}
+  // 首页保留的 tab id 列表
+  allowedHomepageTabIds: ['home', 'match', 'notifications'],
 
-// 通知函数 - 兼容 Loon 和 Surge
-function notify(title, subtitle, message, options) {
-    if (isLoon) {
-        $notify(title, subtitle, message, options);
-    } else if (isSurge) {
-        $notification.post(title, subtitle, message, options);
-    }
-}
+  // 允许进入的房间标签 ID 列表
+  allowedRoomTagIds: [10, 20, 30, 40],
+};
 
-// ===== 核心功能逻辑 =====
-let url = $request.url;
-let body = $response.body;
-let obj = JSON.parse(body);
+/** 通用工具函数区 */
 
-// 辅助函数：检查参数是否为 "1"
-function shouldEnable(param) {
-    return param === "1";
-}
+/** 安全地 JSON.parse，失败时返回 null */
+const safeJSONParse = str => {
+  try {
+    return JSON.parse(str);
+  } catch (err) {
+    console.error('❌ JSON.parse error:', err);
+    return null;
+  }
+};
 
-// 聊天限制信息处理
-if (url.indexOf("/chat/limitInfo") != -1) {
-    log("处理聊天限制信息...");
-    delete obj.data.subMsg;
-    delete obj.data.extMsg;
-    delete obj.data.abValue;
-    delete obj.data.freeEquityStatus;
-    delete obj.data.msg;
-    delete obj.data.remainFreeCount;
-    delete obj.data.type;
-    obj.data.limit = false;
-} 
-// 星球配置处理 - 重点改进此处
-else if (url.indexOf("/planet/config") != -1) {
-    log("处理星球配置...");
-    
-    // 获取所有开关参数
-    let soulMatch = getArgument("soulMatch");
-    let voiceMatch = getArgument("voiceMatch");
-    let partyMatch = getArgument("partyMatch");
-    let masked = getArgument("masked");
-    let maskedMatch = getArgument("maskedMatch");
-    let planet = getArgument("planet");
-    
-    // 打印参数值用于调试
-    log(`参数值: soulMatch=${soulMatch}, voiceMatch=${voiceMatch}, partyMatch=${partyMatch}, 
-        masked=${masked}, maskedMatch=${maskedMatch}, planet=${planet}`);
+/** 安全地 JSON.stringify，失败时返回 null */
+const safeJSONStringify = obj => {
+  try {
+    return JSON.stringify(obj);
+  } catch (err) {
+    console.error('❌ JSON.stringify error:', err);
+    return null;
+  }
+};
 
-    // 定义功能ID映射
-    const sortIdMap = {
-        soulMatch: 1,
-        voiceMatch: 2,
-        partyMatch: 3,
-        masked: 4,
-        maskedMatch: 9,
-        planet: 10
-    };
+/** 批量删除对象字段 */
+const removeFields = (obj, fields = []) => {
+  fields.forEach(f => {
+    if (obj.hasOwnProperty(f)) delete obj[f];
+  });
+  return obj;
+};
 
-    // 构建允许显示的功能ID列表
-    let resultArray = [];
-    if (shouldEnable(soulMatch)) resultArray.push(sortIdMap.soulMatch);
-    if (shouldEnable(voiceMatch)) resultArray.push(sortIdMap.voiceMatch);
-    if (shouldEnable(partyMatch)) resultArray.push(sortIdMap.partyMatch);
-    if (shouldEnable(masked)) resultArray.push(sortIdMap.masked);
-    if (shouldEnable(maskedMatch)) resultArray.push(sortIdMap.maskedMatch);
-    if (shouldEnable(planet)) resultArray.push(sortIdMap.planet);
-    
-    // 打印筛选结果用于调试
-    log("允许显示的功能ID: " + resultArray.join(","));
-    
-    // 筛选核心卡片
-    const originalCoreCards = [...obj.data.coreCards]; // 备份原始数据用于调试
-    obj.data.coreCards = obj.data.coreCards.filter(card => {
-        const shouldKeep = resultArray.includes(card.sortId);
-        log(`卡片: sortId=${card.sortId}, title=${card.title || "未知"}, 保留=${shouldKeep}`);
-        return shouldKeep;
-    });
-    
-    // 打印筛选前后的卡片数量
-    log(`核心卡片: 原始数量=${originalCoreCards.length}, 筛选后数量=${obj.data.coreCards.length}`);
-    
-    // 其他UI清理操作
-    obj.data.showRedMind = false;
-    obj.data.chatRoomInfo.showChatRoom = false;
-    obj.data.gameInfo.showGameCard = false;
-    obj.data.gameInfo.gameCards = [];
-    
-    // 清理卡片样式
-    obj.data.coreCards.forEach(card => {
-        if (card.hasOwnProperty('showLuckyBag')) card.showLuckyBag = false;
-        card.showRedMind = false;
-        card.style = 1;
-        delete card.bgImg;
-        delete card.iconUrl;
-    });
-    obj.data.showLuckyBag = false;
-} 
-// 聊天房间列表处理
-else if (url.indexOf("/chatroom/chatClassifyRoomList") != -1) {
-    log("处理聊天房间列表...");
-    obj.data.positionContentRespList = []; // 移除广告横幅
-} 
-// 广场标签页处理
-else if (url.indexOf("/square/header/tabs") != -1) {
-    log("处理广场标签页...");
-    obj.data.forEach(card => {
-        card.unreadFlag = 0; // 清除未读标志
-    });
-    obj.data = obj.data.filter(item => item.pageId === "PostSquare_Recommend"); // 仅保留推荐页
-} 
-// 首页指标处理
-else if (url.indexOf("/homepage/metrics") != -1) {
-    log("处理首页指标...");
-    obj.data.recentViewNum = 0;
-    obj.data.showTipsCard = false;
-    obj.data.showMetric = false;
-    obj.data.hasHomePageLiked = false;
-    if (obj.data.homePageLikedMetric) {
-        obj.data.homePageLikedMetric.addNum = 0;
-        obj.data.homePageLikedMetric.likedTotalNum = 0;
-        obj.data.homePageLikedMetric.hasShowHistoryDynamic = false;
-    }
-} 
-// 关系推荐用户处理
-else if (url.indexOf("relation/guideUserList") != -1) {
-    log("处理推荐用户列表...");
-    obj.data.userDTOList = []; // 清空推荐用户
-} 
-// 首页标签页v2处理
-else if (url.indexOf("/homepage/tabs/v2") != -1) {
-    log("处理首页标签页v2...");
-    obj.data.selectedTagPool = {};
-    const tab = ["STAR_TRAILS"];
-    obj.data.headTabDTOList = obj.data.headTabDTOList.filter(t => !tab.includes(t.tabCode));
-} 
-// 聊天房间标签处理
-else if (url.indexOf("/chatroom/getRoomTagInfo") != -1) {
-    log("处理聊天房间标签...");
-    let hot = getArgument("hot");
-    let all = getArgument("all");
-    let emotion = getArgument("emotion");
-    let personal = getArgument("personal");
-    let play = getArgument("play");
-    let interest = getArgument("interest");
-    let argue = getArgument("argue");
-    let story = getArgument("story");
-    let chat = getArgument("chat");
-    let heart = getArgument("heart");
+/** 批量设置对象的布尔或标量属性 */
+const setFields = (obj, map = {}) => {
+  Object.entries(map).forEach(([key, val]) => {
+    obj[key] = val;
+  });
+  return obj;
+};
 
-    const idMap = {
-        hot: 11,
-        all: 0,
-        emotion: 43,
-        personal: 44,
-        play: 12,
-        interest: 10,
-        argue: 6,
-        story: 5,
-        chat: 4,
-        heart: 2
-    };
+/** 用 allowedIds 过滤数组中包含 idKey 的元素 */
+const filterByIds = (arr = [], allowedIds = [], idKey = 'id') => {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(item => allowedIds.includes(item[idKey]));
+};
 
-    let resultArray = [];
-    if (shouldEnable(hot)) resultArray.push(idMap.hot);
-    if (shouldEnable(all)) resultArray.push(idMap.all);
-    if (shouldEnable(emotion)) resultArray.push(idMap.emotion);
-    if (shouldEnable(personal)) resultArray.push(idMap.personal);
-    if (shouldEnable(play)) resultArray.push(idMap.play);
-    if (shouldEnable(interest)) resultArray.push(idMap.interest);
-    if (shouldEnable(argue)) resultArray.push(idMap.argue);
-    if (shouldEnable(story)) resultArray.push(idMap.story);
-    if (shouldEnable(chat)) resultArray.push(idMap.chat);
-    if (shouldEnable(heart)) resultArray.push(idMap.heart);
-    
-    obj.data.res = obj.data.res.filter(t => resultArray.includes(t.id));
-    obj.data.res.forEach(card => {
-        if (card.iconConfig != null) {
-            card.iconConfig = null;
-        }
-    });
-} 
-// 图片预览处理
-else if (url.indexOf("/snapchat/url") != -1) {
-    log("处理图片预览...");
+/** 各接口的处理函数区 */
+
+/**
+ * 解锁聊天次数限制
+ */
+const handleLimitInfo = (url, body) => {
+  if (!config.enableChatLimitUnlock) return body;
+  if (body.data) {
+    // 标记为无次数限制
+    body.data.limit = false;
+    // 删除或重置提示字段
+    removeFields(body.data, ['remainTimes', 'message', 'tips']);
+  }
+  return body;
+};
+
+/**
+ * 星球页配置过滤
+ */
+const handlePlanetConfig = (url, body) => {
+  if (!config.enablePlanetConfig) return body;
+  const d = body.data || {};
+  // 只保留白名单卡片
+  d.coreCards = filterByIds(d.coreCards, config.allowedPlanetCardIds, 'cardId');
+  // 关闭所有可选 UI 提示
+  setFields(d, {
+    showHeart: false,
+    showGameEntry: false,
+    showLuckyBag: false
+  });
+  body.data = d;
+  return body;
+};
+
+/**
+ * 屏蔽派对/聊天室广告横幅
+ */
+const handlePartyAd = (url, body) => {
+  if (!config.enablePartyAdBlock) return body;
+  if (body.data && Array.isArray(body.data.bannerList)) {
+    body.data.bannerList = [];
+  }
+  return body;
+};
+
+/**
+ * 精简广场页 tabs
+ */
+const handleSquareTab = (url, body) => {
+  if (!config.enableSquareTabFilter) return body;
+  if (body.data && Array.isArray(body.data.tabs)) {
+    body.data.tabs = filterByIds(body.data.tabs, config.allowedSquareTabIds, 'id');
+  }
+  return body;
+};
+
+/**
+ * 隐藏/重置首页指标与提示
+ */
+const handleHomepageMetrics = (url, body) => {
+  if (!config.enableHomepageMetricsReset) return body;
+  const d = body.data || {};
+  setFields(d, {
+    visitCount: 0,
+    likeCount: 0,
+    commentCount: 0
+  });
+  // 清空提示卡片
+  if (Array.isArray(d.tipCards)) d.tipCards = [];
+  body.data = d;
+  return body;
+};
+
+/**
+ * 清空新手引导用户列表
+ */
+const handleGuideUsers = (url, body) => {
+  if (!config.enableGuideClear) return body;
+  if (body.data && Array.isArray(body.data.users)) {
+    body.data.users = [];
+  }
+  return body;
+};
+
+/**
+ * 精简首页 tabs v2
+ */
+const handleHomepageTabV2 = (url, body) => {
+  if (!config.enableHomepageTabFilter) return body;
+  if (body.data && Array.isArray(body.data.tabs)) {
+    body.data.tabs = body.data.tabs.filter(
+      tab => config.allowedHomepageTabIds.includes(tab.id)
+    );
+  }
+  return body;
+};
+
+/**
+ * 精选聊天房间标签
+ */
+const handleRoomTag = (url, body) => {
+  if (!config.enableRoomTagFilter) return body;
+  if (body.data && Array.isArray(body.data.tags)) {
+    body.data.tags = filterByIds(body.data.tags, config.allowedRoomTagIds, 'tagId');
+    // 删除图标字段
+    body.data.tags.forEach(t => delete t.iconUrl);
+  }
+  return body;
+};
+
+/**
+ * SnapChat 图片预览通知
+ */
+const handleSnapchatUrl = (url, body) => {
+  if (!config.enableSnapchatNotify) return body;
+  const picUrl = body.data && body.data.url;
+  if (picUrl) {
+    $notification.post('图片预览', '', '点击查看大图', picUrl);
+  }
+  return body;
+};
+
+/** URL 匹配表：路径片段 => 处理函数 */
+const handlers = new Map([
+  ['/chat/limitInfo',         handleLimitInfo],
+  ['/planet/config',          handlePlanetConfig],
+  ['/chatroom/chatClassifyRoomList', handlePartyAd],
+  ['/square/header/tabs',     handleSquareTab],
+  ['/homepage/metrics',       handleHomepageMetrics],
+  ['/relation/guideUserList', handleGuideUsers],
+  ['/homepage/tabs/v2',       handleHomepageTabV2],
+  ['/chatroom/getRoomTagInfo', handleRoomTag],
+  ['/snapchat/url',           handleSnapchatUrl],
+]);
+
+/** 主流程 */
+(() => {
+  const url = $request.url;
+  const rawBody = $response.body;
+  // 解析 JSON
+  const bodyObj = safeJSONParse(rawBody);
+  if (!bodyObj) {
+    // 解析失败，返回原始响应
+    return $done({ body: rawBody });
+  }
+
+  // 查找对应的处理器
+  const handler = [...handlers.entries()]
+    .find(([path]) => url.includes(path))
+    ?.[1];
+
+  let newBody = bodyObj;
+  if (handler) {
     try {
-        let imageUrl = obj.data.url;
-        if (imageUrl && typeof imageUrl === 'string') {
-            log("检测到图片URL: " + imageUrl);
-            notify("图片通知", "查看图片", "点击查看详情", {
-                "openUrl": imageUrl,
-                "mediaUrl": imageUrl
-            });
-        }
-    } catch (e) {
-        log("处理图片预览出错：" + e);
+      newBody = handler(url, bodyObj);
+    } catch (err) {
+      console.error(`❌ Handler error for ${url}:`, err);
     }
-}
+  }
 
-// 返回修改后的响应
-body = JSON.stringify(obj);
-$done({body});
+  // 序列化并返回
+  const newBodyStr = safeJSONStringify(newBody);
+  if (!newBodyStr) {
+    // 序列化失败，回退到原始
+    return $done({ body: rawBody });
+  }
+  $done({ body: newBodyStr });
+})();
