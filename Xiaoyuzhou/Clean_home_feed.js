@@ -10,13 +10,18 @@ try {
 
   if (url.includes("/v1/discovery-feed/list")) {
     if (Array.isArray(obj?.data)) {
-      // 移除所有可能是广告或 banner 的项
+      // 精准移除“听清信号的人”
       obj.data = obj.data.filter(item => {
-        if (!item?.type) return true;
-        return !item.type.includes("BANNER") && !item.type.includes("AD");
+        const isTarget =
+          item?.id === "68368946d751e070efd98f0a" ||
+          item?.voiceover === "听清信号的人" ||
+          (item?.type === "EDITORS_COVER_BANNER" &&
+           item?.url?.includes("collection.xiaoyuzhoufm.com/signal"));
+
+        return !isTarget;
       });
 
-      // 可选：清空第一项
+      // 可选：清空第一项（如果仍需保留你原始逻辑）
       if (obj.data.length > 0) {
         obj.data[0] = {};
       }
