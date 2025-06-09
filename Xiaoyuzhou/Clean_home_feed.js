@@ -21,10 +21,7 @@ try {
         return !isTarget;
       });
 
-      // 可选：清空第一项（如果仍需保留你原始逻辑）
-      if (obj.data.length > 0) {
-        obj.data[0] = {};
-      }
+      // ⚠️ 不再清空 obj.data[0]，避免破坏 UI 或加载逻辑
     }
   }
 
