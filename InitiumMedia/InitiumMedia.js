@@ -1,13 +1,20 @@
 let body = $response.body;
 
-// 替换关键字段为“已订阅”
+// 执行替换操作
 body = body
-  // 订阅状态从inactive到active
   .replace(/state="inactive"/g, 'state="active"')
-  // 提示信息为已订阅
   .replace(/message="很遗憾，您没有有效的订阅"/g, 'message="订阅有效，欢迎体验会员服务"')
-  // term字段布尔值置为true
   .replace(/term="false"/g, 'term="true"');
 
-// 返回修改后的响应体
+// 如果关键字段已被替换，则解锁成功
+if (
+  body.includes('state="active"') &&
+  body.includes('message="订阅有效，欢迎体验会员服务"') &&
+  body.includes('term="true"')
+) {
+  console.log('✅ 已解锁端传媒会员');
+} else {
+  console.log('❌ 解锁失败');
+}
+
 $done({ body });
