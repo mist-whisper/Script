@@ -1,12 +1,4 @@
-/*
-引用地址 https://github.com/RuCu6/Loon/blob/main/Scripts/baidu/baiduNoRedirect.js
-
-[rewrite_local]
-^https?:\/\/boxer\.baidu\.com\/scheme\?scheme url script-response-header https://gitlab.com/RuCu6/QuanX/-/raw/main/Scripts/baidu/baiduNoRedirect.js
-
-[mitm]
-hostname = boxer.baidu.com
-*/
+// 引用地址：https://github.com/RuCu6/Loon/blob/main/Scripts/baidu/baiduNoRedirect.js
 
 const method = $request.method;
 const statusCode = $response.statusCode;
@@ -27,8 +19,8 @@ $done({ headers: headers });
 function getUrlParamValue(url, queryName) {
   return Object.fromEntries(
     url
-      。substring(url.indexOf("?") + 1)
-      。split("&")
-      。map((pair) => pair.split("="))
+      .substring(url.indexOf("?") + 1)
+      .split("&")
+      .map((pair) => pair.split("="))
   )[queryName];
 }
