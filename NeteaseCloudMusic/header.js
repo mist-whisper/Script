@@ -3,7 +3,7 @@ const header = $request.headers;
 const isNetEase = url.includes("/interface") && url.includes(".music.163.com/");
 
 // 兼容 Loon 和 Surge 参数读取
-let cookie="", mconfig="", userAgent="";
+let cookie, mconfig, userAgent;
 
 if (typeof $argument !== "undefined") {
   // Loon 方式
@@ -23,7 +23,7 @@ if (isNetEase) {
     if (!cookie) console.log("❌ Cookie 参数缺失");
     if (!mconfig) console.log("❌ MConfigInfo 参数缺失");
     if (!userAgent) console.log("❌ UserAgent 参数缺失");
-    $notification.post("网易云音乐遇到问题", "参数缺失", "请在模块内填入会员数据");
+    $notification.post("网易云音乐遇到问题", "参数缺失", "请填入会员数据");
     $done({});
   } else {
     header["cookie"] = cookie;
