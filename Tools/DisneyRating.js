@@ -1,21 +1,4 @@
-//https://raw.githubusercontent.com/NobyDa/Script/master/Disney/DisneyRating.js
-
-/*********************************
-Disney+ 显示IMDb评分 / 烂番茄评分 / 豆瓣评分
-
-脚本作者: @NobyDa 
-脚本兼容: Surge、QuantumultX、Loon
-系统兼容: iOS14+
-更新时间: 2024/05/04
-脚本参考: https://github.com/yichahucha/surge/blob/master/nf_rating.js
-
-Surge模块: 
-https://raw.githubusercontent.com/NobyDa/Script/master/Surge/Module/DisneyRating.sgmodule
-
-QuantumultX重写引用: 
-https://raw.githubusercontent.com/NobyDa/Script/master/QuantumultX/DisneyRating.snippet
-
-*********************************/
+// 引用地址：https://raw.githubusercontent.com/NobyDa/Script/master/Disney/DisneyRating.js
 
 const $tool = new Tool();
 const consoleLog = false;
@@ -50,7 +33,7 @@ const requestRatings = async () => {
 }
 
 requestRatings()
-    。then(data => {
+    .then(data => {
         if (obj?.data?.page?.visuals) {
             obj.data.page.visuals.promoLabel = {
                 promoLabelType: "generic",
@@ -60,8 +43,8 @@ requestRatings()
         }
         if (consoleLog) console.log("Disney Modified Body:\n" + JSON.stringify(obj));
     })
-    。catch(error => console.log(`ERROR: ${error}`))
-    。finally(() => $done({ body: typeof obj == 'object' ? JSON.stringify(obj) : obj }));
+    .catch(error => console.log(`ERROR: ${error}`))
+    .finally(() => $done({ body: typeof obj == 'object' ? JSON.stringify(obj) : obj }));
 
 function requestDoubanRating(imdbId) {
     return new Promise(function (resolve, reject) {
