@@ -1,35 +1,19 @@
-const url = $request.url;
-const body = $response.body;
-
-if (!body) {
-  $done({});
-}
+let body = $response.body;
+let obj;
 
 try {
-  let obj = JSON.parse(body);
-
-  if (url.includes("/v1/discovery-feed/list")) {
-    if (Array.isArray(obj?.data)) {
-      // 精准移除“听清信号的人”
-      obj.data = obj.data.filter(item => {
-        const isTarget =
-          item?.id === "68368946d751e070efd98f0a" ||
-          item?.voiceover === "听清信号的人" ||
-          (item?.type === "EDITORS_COVER_BANNER" &&
-           item?.url?.includes("collection.xiaoyuzhoufm.com/signal"));
-
-        return !isTarget;
-      });
-
-      // 可选：清空第一项（如果仍需保留你原始逻辑）
-      if (obj.data.length > 0) {
-        obj.data[0] = {};
-      }
-    }
-  }
-
-  $done({ body: JSON.stringify(obj) });
+  obj = JSON.parse(body);
 } catch (e) {
-  console.log("处理失败:", e.message);
   $done({});
+  return;
 }
+
+// 仅当 data 是数组时处理
+if (Array.isArray(obj.data)) {
+  obj.data = obj.data.filter(item => {
+    // 只保留 type 不是 DISCOVERY_HEADER 和 DISCOVERY_BANNER 的模块
+    return item.type !== 'DISCOVERY_HEADER' && item.type !== 'DISCOVERY_BANNER';
+  });
+}
+
+$done({ body: JSON.stringify(obj) });
