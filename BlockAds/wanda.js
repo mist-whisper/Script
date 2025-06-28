@@ -1,24 +1,35 @@
 let body = $response.body;
-let obj = JSON.parse(body);
 
-// 直接清空广告相关数组
-if (obj?.data?.objects) {
-  obj.data.objects["NewHome-&-HBTips"] = [];
-  obj.data.objects["NewHome-&-Home_Banner"] = [];
-  obj.data.objects["NewHome-&-MiddleAD"] = [];
-  obj.data.objects["NewHome-&-FilmAD"] = [];
+// 打印日志，便于排查
+console.log("Response body length:", body.length);
+// 可选：console.log("Response body content:", body);
 
-  // 可选：如果 "Transformers" 里也有广告，可以根据实际需求过滤
-  // 例如只保留 title/commendName 不含“会员”“活动”“票价”等的项
-  if (Array.isArray(obj.data.objects["NewHome-&-Transformers"])) {
-    obj.data.objects["NewHome-&-Transformers"] = obj.data.objects["NewHome-&-Transformers"].filter(item => {
-      // 这里可自定义过滤条件
-      // 例如只保留 title/commendName 不含“会员”“活动”“票价”等
-      const adKeywords = ["会员", "活动", "票价", "卡券", "专区"];
-      let name = item.title || item.commendName || "";
-      return !adKeywords.some(k => name.includes(k));
+try {
+  let obj = JSON.parse(body);
+
+  // 广告字段列表
+  const adKeys = [
+    "OpenAPP-&-FlashAD",
+    "InTheaters-&-BoxAD",
+    "NewHome-&-HBTips",
+    "NewHome-&-Home_Banner",
+    "NewHome-&-MiddleAD",
+    "NewHome-&-FilmAD",
+    "NewHome-&-Transformers"
+  ];
+
+  if (obj?.data?.objects) {
+    adKeys.forEach(key => {
+      if (Array.isArray(obj.data.objects[key])) {
+        obj.data.objects[key] = [];
+      }
     });
   }
-}
 
-$done({body: JSON.stringify(obj)});
+  $done({ body: JSON.stringify(obj) });
+} catch (e) {
+  // 打印错误信息
+  console.log("JSON Parse error:", e.message);
+  // 返回原始内容，避免中断
+  $done({});
+}
