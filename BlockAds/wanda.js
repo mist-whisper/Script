@@ -1,8 +1,11 @@
 let body = $response.body;
+console.log("Raw body:", body);
 
-// 打印日志，便于排查
-console.log("Response body length:", body.length);
-// 可选：console.log("Response body content:", body);
+if (!body) {
+  // body 为空，直接返回
+  $done({});
+  return;
+}
 
 try {
   let obj = JSON.parse(body);
@@ -28,8 +31,6 @@ try {
 
   $done({ body: JSON.stringify(obj) });
 } catch (e) {
-  // 打印错误信息
   console.log("JSON Parse error:", e.message);
-  // 返回原始内容，避免中断
   $done({});
 }
