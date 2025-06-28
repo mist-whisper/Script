@@ -1,8 +1,12 @@
 let body = $response.body;
-console.log("Raw body:", body);
 
-if (!body) {
-  // body 为空，直接返回
+// 日志辅助调试
+console.log("Raw body type:", typeof body);
+console.log("Raw body length:", body ? body.length : "null");
+console.log("Raw body content:", body);
+
+if (!body || body.trim().length === 0) {
+  // 没有内容，直接返回
   $done({});
   return;
 }
@@ -10,15 +14,11 @@ if (!body) {
 try {
   let obj = JSON.parse(body);
 
-  // 广告字段列表
+  // 你要移除的广告字段
   const adKeys = [
     "OpenAPP-&-FlashAD",
-    "InTheaters-&-BoxAD",
-    "NewHome-&-HBTips",
-    "NewHome-&-Home_Banner",
-    "NewHome-&-MiddleAD",
-    "NewHome-&-FilmAD",
-    "NewHome-&-Transformers"
+    "InTheaters-&-BoxAD"
+    // 如有其它广告项，继续添加
   ];
 
   if (obj?.data?.objects) {
