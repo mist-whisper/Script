@@ -1,40 +1,42 @@
-/**
- * @fileoverview 微信新版外链跳转页自动跳转/解锁脚本（修复 match 报错）
- * @version v2.1
- */
+/*
+微信跳转页 URL 解锁器
+适用场景：拦截 https://security.wechat.com/security/con/urlmiddlepagecgi 返回的跳转地址并自动跳转
+作者：wish
+时间：2025-08
+*/
 
-let respBody = typeof $response.body === "string" ? $response.body : $response.body?.toString?.() || "";
+let body = $response.body || '';
+let json;
 
-console.log("🔍 Response Body Length:", respBody.length);
+try {
+  json = JSON.parse(body);
 
-// 正则提取 https URL（极限条件下可能无）
-let urlMatch = respBody.match(/https:\/\/[a-zA-Z0-9\-_.]+\.[a-zA-Z]{2,}(\/[^\s<"']*)?/);
+  // 提取真实跳转 URL（已替换 HTML 实体）
+  const rawUrl = json?.url || '';
+  const decodedUrl = rawUrl
+    .replace(/&#x2f;/g, '/')
+    .replace(/&amp;/g, '&')
+    .trim();
 
-if (urlMatch) {
-  let realURL = urlMatch[0];
-  console.log("✅ 提取到原始链接:", realURL);
+  if (/^https?:\/\//.test(decodedUrl)) {
+    console.log(`✅ 发现跳转链接：${decodedUrl}`);
+    $done({
+      status: 302,
+      headers: { Location: decodedUrl }
+    });
+  } else {
+    console.log(`❌ URL 不合法或为空: ${decodedUrl}`);
+    fallback();
+  }
+} catch (e) {
+  console.log(`❌ JSON 解析失败: ${e.message}`);
+  fallback();
+}
 
-  // 使用快照方式跳转（更稳妥）
-  const useCache = true;
-  const targetURL = useCache
-    ? "https://web.archive.org/web/20991231999999/" + realURL
-    : realURL;
-
+function fallback() {
+  // 默认跳回空白页（或可换成你的站点）
   $done({
     status: 302,
-    headers: {
-      Location: targetURL
-    },
-    body: ""
-  });
-} else {
-  console.log("❌ 没找到 URL，使用 fallback");
-
-  $done({
-    status: 302,
-    headers: {
-      Location: "https://web.archive.org/web/*/https://example.com"
-    },
-    body: ""
+    headers: { Location: "https://support.wechat.com" }
   });
 }
