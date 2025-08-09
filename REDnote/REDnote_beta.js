@@ -1,9 +1,3 @@
-/*
- * ===================================================================
- * 默认下载模式，开启开关后切换为添加模式
- * ===================================================================
- */
-
 // 脚本路由器
 if (typeof $request !== 'undefined' && $request) {
   handleHttpRequest();
@@ -11,12 +5,6 @@ if (typeof $request !== 'undefined' && $request) {
   // 此部分对于您的Loon配置可以忽略
   $done({body: "请使用Loon内的UI开关控制此脚本。"});
 }
-
-/**
- * ===================================================================
- * 功能函数定义区
- * ===================================================================
- */
 
 function handleHttpRequest() {
   const $ = new Env('小红书');
@@ -27,8 +15,6 @@ function handleHttpRequest() {
     return;
   }
   let obj = JSON.parse(rsp_body);
-
-  // --- 所有去广告和媒体优化功能 (保持不变) ---
   
   if (url.includes("/search/banner_list")) obj.data = {};
   if (url.includes("/search/hot_list")) obj.data.items = [];
@@ -172,10 +158,7 @@ function handleHttpRequest() {
     }
   }
 
-  // ===================================================================
-  // ▼▼▼ 评论区最终修正逻辑 (逻辑反转) ▼▼▼
-  // ===================================================================
-  if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
+ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
     replaceRedIdWithFmz200(obj.data);
     let livePhotos = [];
     let note_id = "";
@@ -183,31 +166,21 @@ function handleHttpRequest() {
     // 检查Loon传入的参数，判断开关是否为【开启】状态
     const isSwitchOn = (typeof $argument !== 'undefined' && String($argument).includes('enable=true'));
 
+    // 根据开关状态输出日志
     if (isSwitchOn) {
-      console.log(`[小红书] UI开关检测到: [开启]。评论区将保持为表情包格式，以便添加。`);
+      console.log('[小红书] 开关状态: [开启] -> 模式: [图片模式]，用于下载。');
     } else {
-      console.log(`[小红书] UI开关检测到: [关闭]。评论区表情包将转换为图片格式，以便下载。`);
+      console.log('[小红书] 开关状态: [关闭] -> 模式: [表情包模式]，用于浏览和添加。');
     }
 
     if (obj.data?.comments?.length > 0) {
       note_id = obj.data.comments[0].note_id;
       for (const comment of obj.data.comments) {
         
-        // 【核心修改】仅在开关为【关闭】状态时，才执行转换
-        if (!isSwitchOn) {
+        // 仅在开关为【开启】状态时，才执行转换
+        if (isSwitchOn) {
           if (comment.comment_type === 3) comment.comment_type = 2;
           if (comment.media_source_type === 1) comment.media_source_type = 0;
-        }
-        
-        if (comment.pictures?.length > 0) {
-          for (const picture of comment.pictures) {
-            if (picture.video_id) {
-              const picObj = JSON.parse(picture.video_info);
-              if (picObj.stream?.h265?.[0]?.master_url) {
-                livePhotos.push({ videId: picture.video_id, videoUrl: picObj.stream.h265[0].master_url });
-              }
-            }
-          }
         }
         
         if (comment.sub_comments?.length > 0) {
@@ -247,9 +220,6 @@ function handleHttpRequest() {
       $.setdata(JSON.stringify(commitsRsp), "fmz200.xiaohongshu.comments.rsp");
     }
   }
-  // ===================================================================
-  // ▲▲▲ 评论区逻辑结束 ▲▲▲
-  // ===================================================================
   
   if (url.includes("/api/sns/v1/interaction/comment/video/download?")) {
     const commitsCache = $.getdata("fmz200.xiaohongshu.comments.rsp");
@@ -265,12 +235,6 @@ function handleHttpRequest() {
   $done({body: JSON.stringify(obj)});
 }
 
-
-/**
- * ===================================================================
- * 辅助函数与环境构造器 (必须保留)
- * ===================================================================
- */
 function imageEnhance(jsonStr) {if (!jsonStr) return [];const imageQuality = $.getdata("fmz200.xiaohongshu.imageQuality");if (imageQuality === "original") {jsonStr = jsonStr.replace(/\?imageView2\/2[^&]*(?:&redImage\/frame\/0)/, "?imageView2/0/format/png&redImage/frame/0");} else {jsonStr = jsonStr.replace(/imageView2\/2\/w\/\d+\/format/g, `imageView2/2/w/2160/format`);jsonStr = jsonStr.replace(/imageView2\/2\/h\/\d+\/format/g, `imageView2/2/h/2160/format`);}try {return JSON.parse(jsonStr);} catch (e) {return [];}}
 function replaceUrlContent(collectionA, collectionB) {collectionA.forEach(itemA => {const itemB = collectionB.find(itemB => itemB.file_id === itemA.file_id);if (itemB) {itemA.url = itemA.url !== "" ? itemA.url.replace(/(.*)\.mp4/, `${itemB.url.match(/(.*)\.mp4/)[1]}.mp4`) : itemB.url;itemA.author = "@fmz200";}});}
 function deduplicateLivePhotos(livePhotos) {const seen = new Map();return livePhotos.filter(item => {if (seen.has(item.videId)) return false;seen.set(item.videId, true);return true;});}
