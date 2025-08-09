@@ -378,22 +378,6 @@ if (url.includes("/api/sns/v1/interaction/comment/video/download?")) {
   }
 }
 
-// 恢复评论区表情包原始类型
-function restoreOriginalCommentType(o) {
-  if (Array.isArray(o)) {
-    o.forEach(item => restoreOriginalCommentType(item));
-  } else if (typeof o === 'object' && o !== null) {
-    if ('original_comment_type' in o) {
-      o.comment_type = o.original_comment_type;
-      delete o.original_comment_type;
-    }
-    Object.keys(o).forEach(key => {
-      restoreOriginalCommentType(o[key]);
-    });
-  }
-}
-restoreOriginalCommentType(obj);
-
 $done({body: JSON.stringify(obj)});
 
 // 小红书画质增强：加载2K分辨率的图片
