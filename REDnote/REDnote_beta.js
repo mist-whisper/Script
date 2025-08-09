@@ -2,7 +2,7 @@
 if (typeof $request !== 'undefined' && $request) {
   handleHttpRequest();
 } else {
-  // 此部分对于您的Loon配置可以忽略
+  // 此部分对于Loon配置可以忽略
   $done({body: "请使用Loon内的UI开关控制此脚本。"});
 }
 
@@ -158,19 +158,18 @@ function handleHttpRequest() {
     }
   }
 
- if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
+  if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/note/comment/sub_comments?")) {
     replaceRedIdWithFmz200(obj.data);
     let livePhotos = [];
     let note_id = "";
     
-    // 检查Loon传入的参数，判断开关是否为【开启】状态
+    // 检查Loon传入的参数，判断开关状态
     const isSwitchOn = (typeof $argument !== 'undefined' && String($argument).includes('enable=true'));
 
-    // 根据开关状态输出日志
     if (isSwitchOn) {
-      console.log('[小红书] 开关状态: [开启] -> 模式: [图片模式]，用于下载。');
+      console.log(`[小红书] UI开关检测到: [开启]。评论区表情包将转换为图片格式，以便下载。`);
     } else {
-      console.log('[小红书] 开关状态: [关闭] -> 模式: [表情包模式]，用于浏览和添加。');
+      console.log(`[小红书] UI开关检测到: [关闭]。评论区将保持为表情包格式，以便添加。`);
     }
 
     if (obj.data?.comments?.length > 0) {
@@ -178,9 +177,20 @@ function handleHttpRequest() {
       for (const comment of obj.data.comments) {
         
         // 仅在开关为【开启】状态时，才执行转换
-        if (isSwitchOn) {
+        if (!isSwitchOn) {
           if (comment.comment_type === 3) comment.comment_type = 2;
           if (comment.media_source_type === 1) comment.media_source_type = 0;
+        }
+        
+        if (comment.pictures?.length > 0) {
+          for (const picture of comment.pictures) {
+            if (picture.video_id) {
+              const picObj = JSON.parse(picture.video_info);
+              if (picObj.stream?.h265?.[0]?.master_url) {
+                livePhotos.push({ videId: picture.video_id, videoUrl: picObj.stream.h265[0].master_url });
+              }
+            }
+          }
         }
         
         if (comment.sub_comments?.length > 0) {
