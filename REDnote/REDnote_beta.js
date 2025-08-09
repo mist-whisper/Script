@@ -166,10 +166,11 @@ function handleHttpRequest() {
     // 检查Loon传入的参数，判断开关状态
     const isSwitchOn = (typeof $argument !== 'undefined' && String($argument).includes('enable=true'));
 
+    // 根据开关状态输出日志
     if (isSwitchOn) {
-      console.log(`[小红书] UI开关检测到: [开启]。评论区表情包将转换为图片格式，以便下载。`);
+      console.log('[小红书] 开关状态: [开启] -> 模式: [图片模式]，用于下载。');
     } else {
-      console.log(`[小红书] UI开关检测到: [关闭]。评论区将保持为表情包格式，以便添加。`);
+      console.log('[小红书] 开关状态: [关闭] -> 模式: [表情包模式]，用于浏览和添加。');
     }
 
     if (obj.data?.comments?.length > 0) {
