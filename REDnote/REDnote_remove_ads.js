@@ -277,6 +277,7 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
     for (const comment of obj.data.comments) {
       // comment_type: 0-文字，2-图片/live，3-表情包
       if (comment.comment_type === 3) {
+        comment.original_comment_type = 3; // 保留原始类型
         comment.comment_type = 2;
         console.log(`修改评论类型：3->2`);
       }
@@ -302,7 +303,9 @@ if (url.includes("/api/sns/v5/note/comment/list?") || url.includes("/api/sns/v3/
       }
       if (comment.sub_comments?.length > 0) {
         for (const sub_comment of comment.sub_comments) {
-          if (sub_comment.comment_type === 3) {
+          if (
+           sub_comment.comment_type === 3) {
+            sub_comment.original_comment_type = 3; // 保留原始类型
             sub_comment.comment_type = 2;
             console.log(`修改评论类型1：3->2`);
           }
@@ -374,6 +377,22 @@ if (url.includes("/api/sns/v1/interaction/comment/video/download?")) {
     console.log(`没有[${obj.data?.video.video_id}]的无水印地址`);
   }
 }
+
+// 恢复评论区表情包原始类型
+function restoreOriginalCommentType(o) {
+  if (Array.isArray(o)) {
+    o.forEach(item => restoreOriginalCommentType(item));
+  } else if (typeof o === 'object' && o !== null) {
+    if ('original_comment_type' in o) {
+      o.comment_type = o.original_comment_type;
+      delete o.original_comment_type;
+    }
+    Object.keys(o).forEach(key => {
+      restoreOriginalCommentType(o[key]);
+    });
+  }
+}
+restoreOriginalCommentType(obj);
 
 $done({body: JSON.stringify(obj)});
 
