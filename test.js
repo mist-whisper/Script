@@ -1,18 +1,24 @@
-// ==Loon/Surge 脚本==
-if (typeof $response !== "undefined") {
-    let obj = JSON.parse($response.body);
-
-    // 保留精选、美网、世欧预，删除其他模块
-    if (obj.resData && obj.resData.menuList) {
-        obj.resData.menuList = obj.resData.menuList.filter(item =>
-            item.menuName === "精选" ||
-            item.menuName === "美网" ||
-            item.menuName === "世欧预"
-        );
-    }
-
-    // 输出修改后的响应
-    $done({ body: JSON.stringify(obj) });
-} else {
-    $done({});
+{
+  "desc": "success",
+  "data": {
+    "places": [
+      {
+        "title": "我的钱包",
+        "iconImg": "https://m1.img.10010.com/resources/7188192A31B5AE06E41B64DA6D65A9B0/20241031/png/20241031151815.png",
+        "url": "https://m.client.10010.com/mobileService/openPlatform/openPlatLineNew.htm?to_url=https://epay.10010.com/ci-mps-st-web"
+      },
+      {
+        "title": "话费优惠",
+        "subtitleDesc": "元",
+        "subtitleNum": "8.8",
+        "subtitleType": "1",
+        "labelType": "0",
+        "labelDesc": "",
+        "url": "https://m.client.10010.com/mobileService/openPlatform/openPlatLineNew.htm?to_url=https://epay.10010.com/ci-mps-st-web/HFPreferential"
+      }
+    ],
+    "payShowFlag": true,
+    "redDataSize": 1
+  },
+  "code": "0000"
 }
