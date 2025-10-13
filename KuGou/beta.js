@@ -1,6 +1,42 @@
 const url = $request.url;
 let body = $response.body;
 
+// ===== 参数处理部分 =====
+let args = {};
+if (typeof $argument !== 'undefined' && $argument) {
+  if ($argument.includes('=')) {
+    // 常规参数形式
+    try { args = Object.fromEntries(new URLSearchParams($argument)); } catch {}
+  } else {
+    // 简写模式：只传了一个城市名
+    args.city = $argument.trim();
+  }
+}
+
+// 城市映射表，可根据需要扩展
+const cityMap = {
+  "北京": ["北京市", "110000"],
+  "上海": ["上海市", "310000"],
+  "广州": ["广东省", "440100"],
+  "深圳": ["广东省", "440300"],
+  "杭州": ["浙江省", "330100"],
+  "成都": ["四川省", "510100"],
+  "南京": ["江苏省", "320100"],
+  "武汉": ["湖北省", "420100"],
+  "重庆": ["重庆市", "500000"],
+  "西安": ["陕西省", "610100"]
+};
+
+// 默认值
+let province = args.province || "上海市";
+let city = args.city || "上海";
+let adcode = args.adcode || "310000";
+
+// 简写城市自动补全
+if (args.city && cityMap[args.city]) {
+  [province, adcode] = cityMap[args.city];
+}
+
 try {
   if (body) {
     let obj = JSON.parse(body);
@@ -55,9 +91,9 @@ try {
     // ======= IP 位置伪装 =======
     else if (/^https:\/\/gateway\.kugou\.com\/[\w\/.-]+(?=\?appid=)/.test(url)) {
       if (obj.data?.info) {
-        obj.data.info.province = "上海市";
-        obj.data.info.city = "上海";
-        obj.data.info.adcode = "310000";
+        obj.data.info.province = province;
+        obj.data.info.city = city;
+        obj.data.info.adcode = adcode;
       }
     }
 
