@@ -1,19 +1,28 @@
+/**
+ * KuGou 去广告整合脚本（安全版）
+ * 兼容 Loon / Surge / Quantumult X
+ * 功能：
+ * 1. 去广告（首页、开屏、搜索框、应用内等）
+ * 2. IP 位置伪装（可通过参数 city/province/adcode）
+ * 3. 支持简写城市名（如“北京”自动补全省份和adcode）
+ * 4. 安全处理非 JSON 响应
+ * 5. 递归深度保护
+ */
+
 const url = $request.url;
 let body = $response.body;
 
-// ===== 参数处理部分 =====
+// ===== 参数处理 =====
 let args = {};
 if (typeof $argument !== 'undefined' && $argument) {
   if ($argument.includes('=')) {
-    // 常规参数形式
     try { args = Object.fromEntries(new URLSearchParams($argument)); } catch {}
   } else {
-    // 简写模式：只传了一个城市名
     args.city = $argument.trim();
   }
 }
 
-// 城市映射表，可根据需要扩展
+// 城市映射表
 const cityMap = {
   "北京": ["北京市", "110000"],
   "上海": ["上海市", "310000"],
@@ -38,29 +47,27 @@ if (args.city && cityMap[args.city]) {
 }
 
 try {
-  if (body) {
+  // ===== 判断是否为 JSON =====
+  if (body && body.trim().startsWith("{")) {
     let obj = JSON.parse(body);
 
-    // ======= 首页标签清理 =======
+    // ===== 首页标签清理 =====
     if (/^https:\/\/gateway(retry)?\.kugou\.com\/ocean\/v\d\/tab\/list_v\d/.test(url)) {
       const namesToRemove = ["AI帮唱", "长相思2", "K歌", "小说", "游戏"];
-
-      const removeParentIfNameMatches = (node) => {
+      const removeParentIfNameMatches = (node, depth = 0) => {
+        if (depth > 20) return node; // 防止递归过深
         if (Array.isArray(node)) {
-          return node
-            .map(removeParentIfNameMatches)
-            .filter(item => !(item && item.name && namesToRemove.includes(item.name)));
+          return node.map(item => removeParentIfNameMatches(item, depth + 1))
+                     .filter(item => !(item && item.name && namesToRemove.includes(item.name)));
         } else if (typeof node === 'object' && node !== null) {
-          for (const k in node) node[k] = removeParentIfNameMatches(node[k]);
-          return node;
+          for (const k in node) node[k] = removeParentIfNameMatches(node[k], depth + 1);
         }
         return node;
       };
-
       obj = removeParentIfNameMatches(obj);
     }
 
-    // ======= 开屏广告 =======
+    // ===== 开屏广告 =====
     else if (/^https?:\/\/ads\.service\.kugou\.com\/v4\/mobile_splash/.test(url)) {
       if (obj.data) {
         obj.data.boot_ads = [];
@@ -79,7 +86,7 @@ try {
       }
     }
 
-    // ======= 启动配置推广 =======
+    // ===== 启动配置推广 =====
     else if (/^https?:\/\/gateway\.kugou\.com\/(?:\w+\/)*combo\/startup/.test(url)) {
       if (obj.data?.responses) {
         obj.data.responses = obj.data.responses.filter(
@@ -88,7 +95,7 @@ try {
       }
     }
 
-    // ======= IP 位置伪装 =======
+    // ===== IP 位置伪装 =====
     else if (/^https:\/\/gateway\.kugou\.com\/[\w\/.-]+(?=\?appid=)/.test(url)) {
       if (obj.data?.info) {
         obj.data.info.province = province;
@@ -97,7 +104,7 @@ try {
       }
     }
 
-    // ======= 搜索框推广 =======
+    // ===== 搜索框推广 =====
     else if (/^https?:\/\/gateway\.kugou\.com\/searchnofocus\/v1\/search_no_focus_word/.test(url)) {
       if (obj.data) {
         obj.data.ads = [];
@@ -105,12 +112,12 @@ try {
       }
     }
 
-    // ======= 猜你喜欢 =======
+    // ===== 猜你喜欢 =====
     else if (/^https?:\/\/gateway\.kugou\.com\/guessyousearch\/v1\/guess_you_search/.test(url)) {
       if (obj.data) obj.data.words = [];
     }
 
-    // ======= 应用内推广 =======
+    // ===== 应用内推广 =====
     else if (/^https?:\/\/gateway\.kugou\.com\/mstc\/musicsymbol\/v1\/system\/profile/.test(url)) {
       if (obj.data) {
         obj.data.task = [];
@@ -118,7 +125,7 @@ try {
       }
     }
 
-    // ======= 首页推荐净化 =======
+    // ===== 首页推荐净化 =====
     else if (/^https:\/\/gateway\.kugou\.com\/card\/v1\/pxy\/recommend_stream_v2/.test(url)) {
       if (obj.data?.responses) {
         obj.data.responses = obj.data.responses.filter(r => {
@@ -140,7 +147,8 @@ try {
     body = JSON.stringify(obj);
   }
 } catch (err) {
-  console.log("KuGou_remove_ads.js error:", err);
+  console.log("KuGou_remove_ads.js error:", err, err.stack);
 }
 
+// 非 JSON 或空响应直接返回原始 body
 $done({ body });
