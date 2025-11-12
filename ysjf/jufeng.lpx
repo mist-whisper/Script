@@ -1,0 +1,16 @@
+#!name=jufeng
+#!desc=解锁Premium
+#!author=wish[https://github.com/mist-whisper]
+#!tag=解锁
+#!system=iOS iPadOS
+#!system_version=15
+#!loon_version=3.2.9(837)
+#!homepage=https://github.com/mist-whisper/Loon/blob/master/README.md
+#!icon=
+#!date=2025-11-12 14:19:00
+
+[Script]
+http-response ^https://base\.ysjf\.com/storm_auth/user/self script-path=https://raw.githubusercontent.com/mist-whisper/Script/master/ysjf/jfxj.js,requires-body=true, tag=jufeng
+
+[MITM]
+hostname=base.ysjf.com
