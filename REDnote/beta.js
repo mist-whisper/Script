@@ -1,6 +1,5 @@
-// 小红书去限制脚本 - 最终版
+// 小红书去限制脚本 - 二进制响应处理版
 // 适用于 Loon 和 Surge
-// 匹配: /api/sns/v1/note/imagefeed
 
 let body = $response.body;
 let obj;
@@ -10,13 +9,25 @@ if (!body) {
   $done({});
 }
 
+// 处理不同类型的body
 try {
-  obj = JSON.parse(body);
-  console.log("✅ JSON解析成功");
+  // 如果body是对象，直接使用
+  if (typeof body === 'object' && body !== null) {
+    obj = body;
+    console.log("✅ Body是对象，直接使用");
+  } 
+  // 如果body是字符串，解析JSON
+  else if (typeof body === 'string') {
+    obj = JSON.parse(body);
+    console.log("✅ JSON字符串解析成功");
+  }
+  // 其他情况
+  else {
+    console.log("⚠️ Body类型: " + typeof body);
+    $done({});
+  }
 } catch (e) {
-  console.log("❌ JSON解析失败: " + e);
-  console.log("响应体长度: " + body.length);
-  console.log("响应体预览: " + body.substring(0, 200));
+  console.log("❌ 解析失败: " + e);
   $done({});
 }
 
@@ -104,19 +115,19 @@ if (obj && obj.success && obj.data) {
     });
     
     if (modified) {
-      body = JSON.stringify(obj);
       console.log("🎉 小红书脚本执行成功，已修改限制");
     } else {
       console.log("ℹ️ 未发现需要修改的限制");
     }
     
-    $done({ body });
+    // 返回修改后的对象
+    $done({ body: obj });
     
   } catch (e) {
     console.log("❌ 修改数据时出错: " + e);
     $done({});
   }
 } else {
-  console.log("⚠️ 数据结构不匹配");
+  console.log("⚠️ 数据结构不匹配或无数据");
   $done({});
 }
