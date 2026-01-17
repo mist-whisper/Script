@@ -1,84 +1,76 @@
 /*
- * 脚本功能：小红书解锁图片保存与文字复制 (增强防报错版)
- * 匹配 URL：^https?://edith\.xiaohongshu\.com/.*
- * 更新日志：增加了 Content-Type 检查，防止因解析 Protobuf 或图片导致的 JSON Error
+ * 增强版小红书解锁脚本
+ * 功能：解锁保存图片、恢复复制按钮
+ * 修复：增加防崩溃处理，增加日志输出
  */
 
-var body = $response.body;
-var headers = $response.headers;
+const url = $request.url;
+const body = $response.body;
 
-// 辅助函数：获取 Header 值（兼容大小写）
-function getHeader(headers, key) {
-    if (!headers) return null;
-    return headers[key] || headers[key.toLowerCase()] || headers[key.toUpperCase()];
-}
-
-// 1. 安全检查：如果 Body 为空，直接结束
-if (!body) {
-    $done({});
-}
-
-// 2. 类型检查：只有当 Content-Type 包含 json 时才尝试解析
-// 这一步能过滤掉 Protobuf、图片、HTML 等导致报错的数据
-var contentType = getHeader(headers, "Content-Type") || "";
-if (contentType.indexOf("application/json") === -1) {
-    // console.log("XHS Script: Skipped non-JSON response (" + contentType + ")");
-    $done({}); // 原样返回，不做处理
-}
+// 定义需要强制开启的菜单选项
+const forceOptions = ["copy", "search", "share", "dislike", "report"];
 
 try {
-    var obj = JSON.parse(body);
+    // 1. 尝试解析 JSON。如果 Body 为空或格式不对，这里会直接跳到 catch，不会报错中断请求
+    if (!body) throw new Error("Body is empty");
+    let obj = JSON.parse(body);
 
-    // 辅助函数：处理单个笔记对象
-    const processNote = (note) => {
-        // 1. 解锁图片下载
-        if (note.function_switch) {
-            note.function_switch.forEach(func => {
-                if (func.type === "image_download") {
-                    func.enable = true;
-                    func.reason = "";
+    // 2. 定义处理单个笔记的函数
+    const fixNote = (note) => {
+        if (!note) return;
+
+        // --- 核心修改 A: 恢复复制 ---
+        // 无论原本有没有，强制覆盖为完整的菜单列表
+        note.note_text_press_options = forceOptions;
+
+        // --- 核心修改 B: 恢复图片下载 ---
+        // 针对 function_switch (你的 JSON 里是这里禁止的)
+        if (note.function_switch && Array.isArray(note.function_switch)) {
+            note.function_switch.forEach(item => {
+                if (item.type === "image_download") {
+                    item.enable = true;
+                    item.reason = ""; // 清空“作者已关闭”的提示
                 }
             });
         }
 
-        // 2. 恢复长按复制菜单
-        if (!note.note_text_press_options || note.note_text_press_options.length === 0) {
-            note.note_text_press_options = ["copy", "search", "share"];
-        }
-
-        // 3. 强制允许保存配置
+        // --- 核心修改 C: 媒体保存配置 ---
         if (note.media_save_config) {
             note.media_save_config.disable_save = false;
-            note.media_save_config.disable_watermark = true;
+            note.media_save_config.disable_watermark = false; // 保持 false 或 true 均可，主要看服务端鉴权
+            note.media_save_config.disable_weibo_cover = false;
         }
 
-        // 4. 解锁分享菜单下载
-        if (note.share_info && note.share_info.function_entries) {
-            let hasDownload = note.share_info.function_entries.some(e => e.type === "generate_image");
-            if (!hasDownload) {
-                note.share_info.function_entries.push({"type": "generate_image"});
+        // --- 核心修改 D: 分享菜单 ---
+        // 确保分享菜单里有 "generate_image"
+        if (note.share_info && Array.isArray(note.share_info.function_entries)) {
+            const hasSave = note.share_info.function_entries.some(e => e.type === "generate_image");
+            if (!hasSave) {
+                note.share_info.function_entries.push({ "type": "generate_image" });
             }
         }
     };
 
-    // 遍历逻辑
-    if (obj.data) {
-        if (Array.isArray(obj.data)) {
-            obj.data.forEach(item => {
-                if (item.note_list) item.note_list.forEach(processNote);
-            });
-        } else if (obj.data.note_list) {
-            obj.data.note_list.forEach(processNote);
-        } else if (obj.data.note_list_v2) { // 兼容部分新接口
-            obj.data.note_list_v2.forEach(processNote);
-        }
+    // 3. 遍历数据 (针对你提供的 data -> [0] -> note_list 结构)
+    if (obj.data && Array.isArray(obj.data)) {
+        obj.data.forEach(dataItem => {
+            if (dataItem.note_list && Array.isArray(dataItem.note_list)) {
+                dataItem.note_list.forEach(note => fixNote(note));
+            }
+        });
+    } 
+    // 兼容其他可能的接口结构 (直接在 data 下)
+    else if (obj.data && obj.data.note_list) {
+         obj.data.note_list.forEach(note => fixNote(note));
     }
+
+    // 4. 打印成功日志 (你可以在 Surge/Loon 的日志界面看到这个)
+    console.log("✅ XHS Script Success: Note unlocked.");
 
     $done({ body: JSON.stringify(obj) });
 
 } catch (e) {
-    // 依然捕获错误，但因为前面加了 Content-Type 检查，这里的触发率会大幅降低
-    // 只有当服务器返回了 JSON Header 但内容却是坏的时候才会触发
-    console.log("XHS Processing Error: " + e);
+    // 5. 错误捕获：如果解析失败，原样返回数据，保证 App 不会白屏或报错
+    console.log("❌ XHS Script Error: " + e.message);
     $done({});
 }
