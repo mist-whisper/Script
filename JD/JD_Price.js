@@ -1,470 +1,364 @@
-// 引用地址：https://raw.githubusercontent.com/githubdulong/Script/refs/heads/master/jd_price1.js
+// 引用地址：https://raw.githubusercontent.com/WeiGiegie/666/main/bijia.js
 
-const path1 = "/product/graphext/";
-const path2 = "/baoliao/center/menu";
-const manmanbuy_key = "manmanbuy_val";
-const requestUrl = $request.url;
 const $ = new Env("京东比价");
 
-const getMMdata = async (id) => {
-  const getmmCK = () => {
-    if ($.manmanbuy && typeof $.manmanbuy.c_mmbDevId !== 'undefined' && $.manmanbuy.c_mmbDevId !== null && String($.manmanbuy.c_mmbDevId).trim() !== "") {
-      return $.manmanbuy.c_mmbDevId;
-    }
-  };
-
-  const reqOpts = ({ url, buildBody, ...op }) => {
-    const opt = {
-      method: "post",
-      url,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
-        "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
-      },
-      ...op,
-    };
-    const cb = (args) => {
-      const reqBody = {
-        t: Date.now().toString(),
-        c_appver: "4.8.3.1",
-        c_mmbDevId: getmmCK(),
-        ...args,
-      };
-      reqBody.token = md5(
-        encodeURIComponent(
-          "3E41D1331F5DDAFCD0A38FE2D52FF66F" +
-            jsonToCustomString(reqBody) +
-            "3E41D1331F5DDAFCD0A38FE2D52FF66F"
-        )
-      ).toUpperCase();
-      return jsonToQueryString(reqBody);
-    };
-    return { ...opt, body: buildBody(cb) };
-  };
-
-  const apiCall = async (url, buildBody) => {
-    const options = reqOpts({ url, buildBody });
-    options._timeout = 4000;
-    const respBody = await httpRequest(options);
-    if (!respBody || (typeof respBody.code !== 'undefined' && respBody.code !== 2000 && respBody.code !== 6001)) {
-      throw new Error(`${url} ${respBody?.msg || '请求失败或响应格式不正确'}`);
-    }
-    return respBody;
-  };
-
-  const {
-    result: { spbh, url: itemUrl },
-  } = await apiCall(
-    "https://apapia-history-weblogic.manmanbuy.com/basic/getItemBasicInfo",
-    (set) =>
-      set({
-        methodName: "getHistoryInfoJava",
-        searchKey: `https://item.jd.com/${id}.html`,
-      })
-  );
-
-  const {
-    result: { trend: jiagequshiyh },
-    msg,
-  } = await apiCall(
-    "https://apapia-history-weblogic.manmanbuy.com/history/v2/getHistoryTrend",
-    (set) =>
-      set({
-        methodName: "getHistoryTrend2021",
-        spbh,
-        url: itemUrl,
-      })
-  );
-
-  if (!jiagequshiyh) return { msg };
-
-  const {
-    remark: { ListPriceDetail },
-  } = await apiCall(
-    "https://apapia-history-weblogic.manmanbuy.com/history/priceRemark",
-    (set) =>
-      set({
-        methodName: "priceRemarkJava",
-        jiagequshiyh,
-      })
-  );
-
-  return {
-    ListPriceDetail,
-    jiagequshiyh,
-  };
-};
-
-let args =
-  typeof $argument === "string"
-    ? $argument
-    : typeof $argument === "object" && $argument !== null
-      ? Object.entries($argument)
-          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-          .join("&")
-      : "";
-$.log(`读取参数: ${args}`);
-const argObj = Object.fromEntries(
-  args.split("&").filter(item => item.includes("=")).map((item) => item.split("=").map(decodeURIComponent))
-);
-const isEmpty = (val) => val === undefined || val === null || val === "" || val === "null";
-
-const defaultThemeTime = "7-19";
-$.themeTime = !isEmpty(argObj["theme_time"])
-  ? argObj["theme_time"]
-  : $.getdata("theme_time") || defaultThemeTime;
-
-if (requestUrl.includes(path2)) {
-  const reqbody = $request.body;
-  $.setdata(reqbody, manmanbuy_key);
-  $.msg($.name, "获取CK成功 🎉", reqbody);
+if ($.isNode()) {
+    global.$request = { url: 'https://in.m.jd.com/product/graphext/100142754310.html', method: '', headers: {}, body: '' };
+    global.$response = { headers: {}, body: '<body>' };
+    global.$done = (obj) => console.log(obj);
 }
 
-if (requestUrl.includes(path1)) {
-  intCryptoJS(); 
-  $.manmanbuy = getck(); 
-  let currentReqUrl = $request.url;
-  $.appType = currentReqUrl.includes("lite-in.m.jd.com") ? "jdtj" : "jd";
+const url = $request.url;
 
-  (async () => {
-    const match = currentReqUrl.match(/product\/graphext\/(\d+)\.html/);
-    if (!match) {
-      $done({});
-      return;
-    }
+if (url.includes('/product/graphext/')) {
+    const responseBody = $response?.body;
+    main().then(res => $done(res || { body: responseBody })).catch(err => {
+        const html = `<div style="max-width:90%;margin:20px auto;padding:12px;background:#fff;color:#d32f2f;border:2px solid #f44336;border-radius:8px;font-size:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.06);"><strong>${err.message||'未知错误'}</strong></div>`;
+        $.msg('京东比价提示', err.message||'未知错误');
+        $done({ body: responseBody.replace("<body>", `<body>${html}`) });
+    });
+}
 
+async function main() {
+    const match = url.match(/product\/graphext\/(\d+)\.html/);
+    if (!match) throw new Error("商品ID获取失败");
+    
     const productId = match[1];
-    try {
-      const { ListPriceDetail, msg: mmMsg } = await getMMdata(productId);
-      if (!ListPriceDetail) {
-          throw new Error(mmMsg || '从慢慢买获取价格详情失败');
-      }
-      const exclude = new Set(["常购价格", "历史最高价"]);
-      const list = ListPriceDetail.filter((i) => !exclude.has(i.Name));
+    const JD_Url = `https://item.jd.com/${productId}.html`;
+    const responseBody = $response?.body;
 
-      const html = buildPriceTableHTML(list);
-      const newBody = $response.body.replace(
-        /<body[^>]*>/,
-        (bodyMatch) => `${bodyMatch}\n${html}`
-      );
-      $done({ body: newBody });
-    } catch (err) {
-      $.logErr(err.message || $.toStr(err));
-      $done({});
-    }
-  })();
-}
-
-function buildPriceTableHTML(priceList) {
-  if (!Array.isArray(priceList) || priceList.length === 0) {
-    return `<div class="price-container">
-                  <table class="price-table">
-                    <thead><tr><th>类型</th><th>日期</th><th>价格</th><th>差价</th></tr></thead>
-                    <tbody><tr><td colspan="4">暂无数据</td></tr></tbody>
-                  </table>
-                </div>`;
-  }
-
-  const rows = priceList
-    .map((item) => {
-      let { Name: name, Date: date, Price: price = "", Difference: diff = "" } = item;
-      date =
-        name === "当前到手价"
-          ? typeof $.time === "function"
-            ? $.time("yyyy-MM-dd")
-            : new Date().toISOString().split("T")[0]
-          : date || "-";
-      let diffClass = diff.startsWith("↑") ? "up" : diff.startsWith("↓") ? "down" : "";
-      return `<tr><td>${name}</td><td>${date}</td><td>${price}</td><td class="price-diff ${diffClass}">${diff}</td></tr>`;
-    })
-    .join("");
-
-  const chartData = priceList
-    .filter((i) => i.Price && !isNaN(parseFloat(String(i.Price).replace(/[¥\s]/g, ""))))
-    .map((i) => ({
-      date:
-        i.Name === "当前到手价"
-          ? typeof $.time === "function"
-            ? $.time("yyyy-MM-dd")
-            : new Date().toISOString().split("T")[0]
-          : i.Date || "-",
-      price: parseFloat(String(i.Price).replace(/[¥\s]/g, "")),
-    }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const labels = chartData.map((i) => i.date);
-  const prices = chartData.map((i) => i.price);
-
-  return `
-<div class="price-container">
-  <table class="price-table">
-    <thead><tr><th>类型</th><th>日期</th><th>价格</th><th>差价</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <canvas id="priceChart" height="100"></canvas>
-</div>
-<style>
-body, table {
-    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-:root {
-    --background-color: #FEFEFE;
-    --text-color: #333;
-    --border-color: #EEE;
-    --shadow-color: rgba(0,0,0,0.05);
-}
-[data-theme="dark"] {
-    --background-color: #1a1a1a;
-    --text-color: #f0f0f0;
-    --border-color: #444;
-    --shadow-color: rgba(0,0,0,0.2);
-}
-.price-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: bold;
-    background: var(--background-color);
-    color: var(--text-color);
-    border-radius: 0;
-    overflow: hidden;
-    box-shadow: none;
-    transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-}
-.price-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    border-radius: 8px;
-    overflow: hidden;
-}
-.price-table thead tr {
-    background: linear-gradient(to right, #ff6666, #e61a23);
-}
-.price-table th {
-    background: none;
-    color: #fff;
-    padding: 12px;
-    text-align: left;
-    font-weight: bold;
-    border: none;
-}
-.price-table td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-color);
-    transition: color 0.3s ease;
-}
-.price-diff.up {
-    color: #C91623;
-}
-.price-diff.down {
-    color: #00aa00;
-}
-</style>
-<script>
-const setTimeBasedTheme = () => {
-    const themeTime = "${$.themeTime}".split("-");
-    let start = parseInt(themeTime[0]) || 7;
-    let end = parseInt(themeTime[1]) || 19;
-    const currentHour = new Date().getHours();
-    const isDarkTime = currentHour < start || currentHour >= end;
-    document.documentElement.setAttribute('data-theme', isDarkTime ? 'dark' : 'light');
-    console.log('Theme set to:', document.documentElement.getAttribute('data-theme'));
-};
-const initializeChart = () => {
-    const canvas = document.getElementById('priceChart');
-    if (!canvas) {
-        console.error('Canvas element not found for priceChart');
-        return;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-        console.error('Canvas context not found for priceChart');
-        return;
-    }
-    if (window.priceChartInstance) {
-        window.priceChartInstance.destroy();
-    }
-    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-    console.log('isDarkMode:', isDarkMode);
-    const themeTextColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
-    console.log('themeTextColor from CSS:', themeTextColor);
-    window.priceChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ${JSON.stringify(labels)},
-            datasets: [{
-                label: '价格趋势',
-                data: ${JSON.stringify(prices)},
-                borderColor: '#e61a23',
-                backgroundColor: 'rgba(230,26,35,0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 6
-            }]
+    // 获取商品加密code
+    const codeRes = await httpRequest({
+        url: 'https://w.so168.top/getClickUrlById.do',
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.61(0x18003d39) NetType/WIFI Language/zh_CN",
+            "Accept-Encoding": "gzip,compress,br,deflate",
+            "Connection": "keep-alive"
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: {
-                        boxWidth: 12,
-                        font: { size: 12 },
-                        color: themeTextColor
-                    }
-                },
-                tooltip: {
-                    backgroundColor: isDarkMode ? '#444' : '#fff',
-                    titleColor: themeTextColor,
-                    bodyColor: themeTextColor,
-                    callbacks: {
-                        label: ctx => '¥' + ctx.raw
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: '日期（1年）',
-                        align: 'start',
-                        color: themeTextColor,
-                        font: { size: 12 }
-                    },
-                    ticks: {
-                        autoSkip: false,
-                        color: themeTextColor,
-                        font: { size: 12 }
-                    },
-                    grid: {
-                        color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: '价格（元）',
-                        color: themeTextColor,
-                        font: { size: 12 }
-                    },
-                    ticks: {
-                        color: themeTextColor,
-                        font: { size: 12 }
-                    },
-                    grid: {
-                        color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                    },
-                    beginAtZero: false
-                }
-            }
-        }
+        body: `scontent=${encodeURIComponent(JD_Url)}`,
+        _timeout: 8000
     });
-};
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeBasedTheme();
-    initializeChart();
-    const observer = new MutationObserver(() => {
-        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-        const newThemeTextColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
-        if (window.priceChartInstance) {
-            window.priceChartInstance.options.plugins.legend.labels.color = newThemeTextColor;
-            window.priceChartInstance.options.scales.x.title.color = newThemeTextColor;
-            window.priceChartInstance.options.scales.x.ticks.color = newThemeTextColor;
-            window.priceChartInstance.options.scales.y.title.color = newThemeTextColor;
-            window.priceChartInstance.options.scales.y.ticks.color = newThemeTextColor;
-            window.priceChartInstance.options.plugins.tooltip.titleColor = newThemeTextColor;
-            window.priceChartInstance.options.plugins.tooltip.bodyColor = newThemeTextColor;
-            window.priceChartInstance.options.plugins.tooltip.backgroundColor = isDarkMode ? '#444' : '#fff';
-            window.priceChartInstance.update();
-        }
+    
+    if (!codeRes?.code) throw new Error("商品数据获取失败");
+
+    // 获取历史价格数据
+    const historyRes = await httpRequest({
+        url: `https://w.so168.top/history.htm?code=${encodeURIComponent(codeRes.code)}&reType=json`,
+        method: 'GET',
+        headers: {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.61(0x18003d39) NetType/WIFI Language/zh_CN",
+            "Accept-Encoding": "gzip,compress,br,deflate",
+            "Connection": "keep-alive"
+        },
+        _timeout: 8000
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>`;
+    
+    if (typeof historyRes === 'string' && historyRes.includes('对不起，没有找到')) {
+        throw new Error("该商品暂未收录价格数据");
+    }
+    
+    if (!historyRes?.his) throw new Error("未获取到历史价格信息");
+
+    // 解析历史数据
+    const priceList = parseHistoryData(historyRes.his, historyRes.minPrice);
+    if (!priceList.length) throw new Error("价格数据解析失败");
+
+    // 生成HTML
+    const html = generateHTML(priceList);
+    return { body: responseBody.replace("<body>", `<body>${html}`) };
 }
 
-function getck() {
-  const ck = $.getdata(manmanbuy_key);
-  if (!ck) {
-    $.msg($.name, "请先打开【慢慢买】APP获取CK ⚠️");
-    return null;
-  }
-  const Params = parseQueryString(ck);
-  if (!Params?.c_mmbDevId) {
-    $.msg($.name, "数据异常 请联系脚本作者检查CK格式 ⚠️");
-    return null;
-  }
-  $.log("慢慢买CK (c_mmbDevId)：", Params.c_mmbDevId);
-  return Params;
+function parseHistoryData(historyStr, minPrice) {
+    const priceList = [];
+    const now = new Date();
+    
+    // 解析历史数据
+    const regex = /Date\.UTC\((\d{4}),(\d{1,2}),(\d{1,2})\),(\d+(?:\.\d+)?)/g;
+    const matches = [...historyStr.matchAll(regex)];
+    if (!matches.length) return [];
+    
+    const prices = matches.map(match => {
+        const year = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const day = parseInt(match[3]);
+        const price = parseFloat(match[4]);
+        return { date: new Date(Date.UTC(year, month, day)), price, month: month + 1, day };
+    });
+    
+    prices.sort((a, b) => a.date - b.date);
+    
+    const currentPrice = prices[prices.length - 1].price;
+    const currentDate = prices[prices.length - 1].date;
+    
+    // 关键价格点
+    const pricePoints = [
+        { name: '当前到手价', getValue: () => currentPrice, getDate: () => currentDate, isCurrent: true },
+        { name: '历史最低价', getValue: () => minPrice, getDate: () => prices.find(p => p.price === minPrice)?.date },
+        { name: '30天最低价', getValue: () => getMinPrice(prices, 30, now), getDate: () => getMinDate(prices, 30, now) },
+        { name: '90天最低价', getValue: () => getMinPrice(prices, 90, now), getDate: () => getMinDate(prices, 90, now) },
+        { name: '180天最低价', getValue: () => getMinPrice(prices, 180, now), getDate: () => getMinDate(prices, 180, now) },
+        { name: '365天最低价', getValue: () => getMinPrice(prices, 365, now), getDate: () => getMinDate(prices, 365, now) },
+        { name: '618价格', getValue: () => getSpecialPrice(prices, 6, 18), getDate: () => getSpecialDate(prices, 6, 18) },
+        { name: '双11价格', getValue: () => getSpecialPrice(prices, 11, 11), getDate: () => getSpecialDate(prices, 11, 11) },
+        { name: '双12价格', getValue: () => getSpecialPrice(prices, 12, 12), getDate: () => getSpecialDate(prices, 12, 12) }
+    ];
+    
+    let sortOrder = 1;
+    pricePoints.forEach(point => {
+        const value = point.getValue();
+        const date = point.getDate();
+        if (value !== null && value !== undefined) {
+            priceList.push({
+                Name: point.name,
+                Date: date ? formatDate(date) : '',
+                Price: value.toFixed(2),
+                Difference: point.isCurrent ? '当前' : formatDifference(currentPrice, value),
+                Percentage: point.isCurrent ? '-' : formatPercentage(currentPrice, value),
+                sortOrder: sortOrder++
+            });
+        }
+    });
+    
+    priceList.sort((a, b) => a.sortOrder - b.sortOrder);
+    return priceList;
+}
+
+// 辅助函数
+function getMinPrice(prices, days, now) {
+    const cutoff = new Date(now - days * 24 * 60 * 60 * 1000);
+    const filtered = prices.filter(p => p.date >= cutoff);
+    return filtered.length > 0 ? Math.min(...filtered.map(p => p.price)) : null;
+}
+
+function getMinDate(prices, days, now) {
+    const cutoff = new Date(now - days * 24 * 60 * 60 * 1000);
+    const filtered = prices.filter(p => p.date >= cutoff);
+    if (filtered.length === 0) return null;
+    const minPrice = Math.min(...filtered.map(p => p.price));
+    return filtered.find(p => p.price === minPrice)?.date;
+}
+
+function getSpecialPrice(prices, month, day) {
+    const filtered = prices.filter(p => p.month === month && p.day === day);
+    return filtered.length > 0 ? filtered.sort((a, b) => b.date - a.date)[0].price : null;
+}
+
+function getSpecialDate(prices, month, day) {
+    const filtered = prices.filter(p => p.month === month && p.day === day);
+    return filtered.length > 0 ? filtered.sort((a, b) => b.date - a.date)[0].date : null;
+}
+
+function formatDate(date) {
+    if (!date) return '-';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function formatDifference(current, history) {
+    const diff = current - history;
+    const absDiff = Math.abs(diff);
+    if (diff === 0) return '持平';
+    return diff > 0 ? `↑${absDiff.toFixed(2)}` : `↓${absDiff.toFixed(2)}`;
+}
+
+function formatPercentage(current, history) {
+    const diff = current - history;
+    if (diff === 0) return '0%';
+    const percent = (Math.abs(diff) / current * 100).toFixed(1);
+    return diff > 0 ? `↑${percent}%` : `↓${percent}%`;
+}
+
+function generateHTML(priceList) {
+    // 生成表格行
+    const rows = priceList.map(item => {
+        const { Name: name, Date: date, Price: price, Difference: diff, Percentage: percent } = item;
+        const isCurrent = name === '当前到手价';
+        
+        let diffClass = '', percentClass = '';
+        if (diff.startsWith('↑')) diffClass = percentClass = 'up';
+        else if (diff.startsWith('↓')) diffClass = percentClass = 'down';
+        
+        if (isCurrent) {
+            return `<tr class="current-row">
+                <td><strong>${name}</strong></td>
+                <td>${date}</td>
+                <td><strong>${price}</strong></td>
+                <td><strong>${diff}</strong></td>
+                <td>-</td>
+            </tr>`;
+        }
+        
+        return `<tr>
+            <td>${name}</td>
+            <td>${date}</td>
+            <td>${price}</td>
+            <td class="${diffClass}">${diff}</td>
+            <td class="${percentClass}">${percent}</td>
+        </tr>`;
+    }).join('');
+    
+    const now = new Date();
+    const updateTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}`;
+    
+    return `<div class="price-container">
+        <table class="price-table">
+            <thead>
+                <tr>
+                    <th>类型</th>
+                    <th>日期</th>
+                    <th>价格</th>
+                    <th>差价</th>
+                    <th>幅度</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <div class="footer">
+            <span>更新: ${updateTime}</span>
+        </div>
+    </div>
+    <style>
+        body, table {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .price-container {
+            max-width: 95%;
+            margin: 8px auto;
+            padding: 8px;
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6px;
+            table-layout: fixed;
+        }
+        .price-table th {
+            background: #f8f8f8;
+            color: #333;
+            padding: 8px 4px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 1px solid #e61a23;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .price-table td {
+            padding: 6px 4px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .current-row {
+            background-color: #fff5f5;
+        }
+        .current-row td {
+            font-weight: bold;
+            border-bottom: 1px solid #e61a23;
+        }
+        .up {
+            color: #C91623;
+            font-weight: bold;
+        }
+        .down {
+            color: #00aa00;
+            font-weight: bold;
+        }
+        .price-table tbody tr:nth-child(even):not(.current-row) {
+            background-color: #fafafa;
+        }
+        .price-table tbody tr:hover {
+            background-color: #f0f7ff;
+        }
+        .footer {
+            font-size: 10px;
+            color: #999;
+            padding-top: 6px;
+            border-top: 1px dashed #eee;
+            text-align: right;
+        }
+        /* 列宽分配 */
+        .price-table th:nth-child(1),
+        .price-table td:nth-child(1) {
+            width: 22%;
+        }
+        .price-table th:nth-child(2),
+        .price-table td:nth-child(2) {
+            width: 20%;
+        }
+        .price-table th:nth-child(3),
+        .price-table td:nth-child(3) {
+            width: 18%;
+            text-align: right;
+        }
+        .price-table th:nth-child(4),
+        .price-table td:nth-child(4) {
+            width: 15%;
+            text-align: center;
+        }
+        .price-table th:nth-child(5),
+        .price-table td:nth-child(5) {
+            width: 15%;
+            text-align: center;
+        }
+        /* 价格列右对齐，其他列左对齐 */
+        .price-table th:nth-child(3),
+        .price-table td:nth-child(3) {
+            text-align: right;
+            padding-right: 6px;
+        }
+        .price-table th:nth-child(4),
+        .price-table td:nth-child(4),
+        .price-table th:nth-child(5),
+        .price-table td:nth-child(5) {
+            text-align: center;
+        }
+        /* 表头文字更紧凑 */
+        .price-table th {
+            letter-spacing: -0.3px;
+        }
+    </style>`;
 }
 
 async function httpRequest(options) {
-  try {
-    options = options.url ? options : { url: options };
-    const method = options?.method?.toLowerCase() || ("body" in options ? "post" : "get");
-    const respType = options?._respType || "body";
-    const timeout = options?._timeout || 240000;
-
-    return await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-          const err = new Error(`⛔️ 请求超时: ${options.url}`);
-          $.logErr(err.message);
-          reject(err);
-      }, timeout);
-      
-      $[method](options, (error, response, data) => {
-        clearTimeout(timer);
-        if (error) {
-          $.logErr(`HttpRequest Error for ${options.url}: ${$.toStr(error)}`);
-          reject(error);
-        } else {
-          if (respType === "all") {
-            resolve(response);
-          } else {
-            resolve($.toObj(data, data)); 
-          }
-        }
-      });
+    return new Promise((resolve, reject) => {
+        const req = { ...options };
+        const method = req._method || ('body' in req ? 'post' : 'get');
+        const respType = req._respType || 'body';
+        const timeout = req._timeout || 8000;
+        
+        delete req._method;
+        delete req._respType;
+        delete req._timeout;
+        
+        const timeoutId = setTimeout(() => reject(new Error(`请求超时`)), timeout);
+        
+        $[method.toLowerCase()](req, (error, response, data) => {
+            clearTimeout(timeoutId);
+            if (error) return reject(new Error(`请求失败: ${error}`));
+            
+            if (typeof response?.body === 'string' && response.body.includes('对不起，没有找到')) {
+                return resolve(response.body);
+            }
+            
+            resolve(respType !== 'all' ? $.toObj(response?.[respType], response?.[respType]) : response);
+        });
     });
-  } catch (err) {
-    $.logErr(`httpRequest Exception: ${$.toStr(err)}`);
-    return Promise.reject(err);
-  }
 }
 
-function parseQueryString(queryString) {
-  const jsonObject = {};
-  if (!queryString) return jsonObject;
-  const pairs = queryString.split("&");
-  pairs.forEach((pair) => {
-    const parts = pair.split("=", 2);
-    if (parts.length >= 1 && parts[0] !== "") {
-        jsonObject[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || "");
-    }
-  });
-  return jsonObject;
-}
-
-function jsonToQueryString(jsonObject) {
-  return Object.keys(jsonObject)
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(jsonObject[key])}`)
-    .join("&");
-}
-
-function jsonToCustomString(jsonObject) {
-  return Object.keys(jsonObject)
-    .filter((key) => jsonObject[key] !== "" && key.toLowerCase() !== "token")
-    .sort()
-    .map((key) => `${key.toUpperCase()}${String(jsonObject[key]).toUpperCase()}`)
-    .join("");
-}
-
-function intCryptoJS(){CryptoJS=function(t,r){var n;if("undefined"!=typeof window&&window.crypto&&(n=window.crypto),"undefined"!=typeof self&&self.crypto&&(n=self.crypto),"undefined"!=typeof globalThis&&globalThis.crypto&&(n=globalThis.crypto),!n&&"undefined"!=typeof window&&window.msCrypto&&(n=window.msCrypto),!n&&"undefined"!=typeof global&&global.crypto&&(n=global.crypto),!n&&"function"==typeof require)try{n=require("crypto")}catch(t){}var e=function(){if(n){if("function"==typeof n.getRandomValues)try{return n.getRandomValues(new Uint32Array(1))[0]}catch(t){}if("function"==typeof n.randomBytes)try{return n.randomBytes(4).readInt32LE()}catch(t){}}throw new Error("Native crypto module could not be used to get secure random number.")},i=Object.create||function(){function t(){}return function(r){var n;return t.prototype=r,n=new t,t.prototype=null,n}}(),o={},a=o.lib={},s=a.Base={extend:function(t){var r=i(this);return t&&r.mixIn(t),r.hasOwnProperty("init")&&this.init!==r.init||(r.init=function(){r.$super.init.apply(this,arguments)}),r.init.prototype=r,r.$super=this,r},create:function(){var t=this.extend();return t.init.apply(t,arguments),t},init:function(){},mixIn:function(t){for(var r in t)t.hasOwnProperty(r)&&(this[r]=t[r]);t.hasOwnProperty("toString")&&(this.toString=t.toString)},clone:function(){return this.init.prototype.extend(this)}},c=a.WordArray=s.extend({init:function(t,r){t=this.words=t||[],this.sigBytes=null!=r?r:4*t.length},toString:function(t){return(t||f).stringify(this)},concat:function(t){var r=this.words,n=t.words,e=this.sigBytes,i=t.sigBytes;if(this.clamp(),e%4)for(var o=0;o<i;o++){var a=n[o>>>2]>>>24-o%4*8&255;r[e+o>>>2]|=a<<24-(e+o)%4*8}else for(var s=0;s<i;s+=4)r[e+s>>>2]=n[s>>>2];return this.sigBytes+=i,this},clamp:function(){var r=this.words,n=this.sigBytes;r[n>>>2]&=4294967295<<32-n%4*8,r.length=t.ceil(n/4)},clone:function(){var t=s.clone.call(this);return t.words=this.words.slice(0),t},random:function(r){var n,i=[],o=function(r){r=r;var n=987654321,e=4294967295;return function(){var i=((n=36969*(65535&n)+(n>>16)&e)<<16)+(r=18e3*(65535&r)+(r>>16)&e)&e;return i/=4294967296,(i+=.5)*(t.random()>.5?1:-1)}},a=!1;try{e(),a=!0}catch(t){}for(var s,u=0;u<r;u+=4)a?i.push(e()):(s=987654071*(n=o(4294967296*(s||t.random())))(),i.push(4294967296*n()|0));return new c.init(i,r)}}),u=o.enc={},f=u.Hex={stringify:function(t){for(var r=t.words,n=t.sigBytes,e=[],i=0;i<n;i++){var o=r[i>>>2]>>>24-i%4*8&255;e.push((o>>>4).toString(16)),e.push((15&o).toString(16))}return e.join("")},parse:function(t){for(var r=t.length,n=[],e=0;e<r;e+=2)n[e>>>3]|=parseInt(t.substr(e,2),16)<<24-e%8*4;return new c.init(n,r/2)}},h=u.Latin1={stringify:function(t){for(var r=t.words,n=t.sigBytes,e=[],i=0;i<n;i++){var o=r[i>>>2]>>>24-i%4*8&255;e.push(String.fromCharCode(o))}return e.join("")},parse:function(t){for(var r=t.length,n=[],e=0;e<r;e++)n[e>>>2]|=(255&t.charCodeAt(e))<<24-e%4*8;return new c.init(n,r)}},p=u.Utf8={stringify:function(t){try{return decodeURIComponent(escape(h.stringify(t)))}catch(t){throw new Error("Malformed UTF-8 data")}},parse:function(t){return h.parse(unescape(encodeURIComponent(t)))}},d=a.BufferedBlockAlgorithm=s.extend({reset:function(){this._data=new c.init,this._nDataBytes=0},_append:function(t){"string"==typeof t&&(t=p.parse(t)),this._data.concat(t),this._nDataBytes+=t.sigBytes},_process:function(r){var n,e=this._data,i=e.words,o=e.sigBytes,a=this.blockSize,s=o/(4*a),u=(s=r?t.ceil(s):t.max((0|s)-this._minBufferSize,0))*a,f=t.min(4*u,o);if(u){for(var h=0;h<u;h+=a)this._doProcessBlock(i,h);n=i.splice(0,u),e.sigBytes-=f}return new c.init(n,f)},clone:function(){var t=s.clone.call(this);return t._data=this._data.clone(),t},_minBufferSize:0}),l=(a.Hasher=d.extend({cfg:s.extend(),init:function(t){this.cfg=this.cfg.extend(t),this.reset()},reset:function(){d.reset.call(this),this._doReset()},update:function(t){return this._append(t),this._process(),this},finalize:function(t){return t&&this._append(t),this._doFinalize()},blockSize:16,_createHelper:function(t){return function(r,n){return new t.init(n).finalize(r)}},_createHmacHelper:function(t){return function(r,n){return new l.HMAC.init(t,n).finalize(r)}}}),o.algo={});return o}(Math);!function(t){var r=CryptoJS,n=r.lib,e=n.WordArray,i=n.Hasher,o=r.algo,a=[];!function(){for(var r=0;r<64;r++)a[r]=4294967296*t.abs(t.sin(r+1))|0}();var s=o.MD5=i.extend({_doReset:function(){this._hash=new e.init([1732584193,4023233417,2562383102,271733878])},_doProcessBlock:function(t,r){for(var n=0;n<16;n++){var e=r+n,i=t[e];t[e]=16711935&(i<<8|i>>>24)|4278255360&(i<<24|i>>>8)}var o=this._hash.words,s=t[r+0],p=t[r+1],d=t[r+2],l=t[r+3],y=t[r+4],v=t[r+5],g=t[r+6],w=t[r+7],_=t[r+8],m=t[r+9],B=t[r+10],b=t[r+11],C=t[r+12],S=t[r+13],x=t[r+14],A=t[r+15],H=o[0],z=o[1],M=o[2],D=o[3];z=h(z=h(z=h(z=h(z=f(z=f(z=f(z=f(z=u(z=u(z=u(z=u(z=c(z=c(z=c(z=c(z,M=c(M,D=c(D,H=c(H,z,M,D,s,7,a[0]),z,M,p,12,a[1]),H,z,d,17,a[2]),D,H,l,22,a[3]),M=c(M,D=c(D,H=c(H,z,M,D,y,7,a[4]),z,M,v,12,a[5]),H,z,g,17,a[6]),D,H,w,22,a[7]),M=c(M,D=c(D,H=c(H,z,M,D,_,7,a[8]),z,M,m,12,a[9]),H,z,B,17,a[10]),D,H,b,22,a[11]),M=c(M,D=c(D,H=c(H,z,M,D,C,7,a[12]),z,M,S,12,a[13]),H,z,x,17,a[14]),D,H,A,22,a[15]),M=u(M,D=u(D,H=u(H,z,M,D,p,5,a[16]),z,M,g,9,a[17]),H,z,b,14,a[18]),D,H,s,20,a[19]),M=u(M,D=u(D,H=u(H,z,M,D,v,5,a[20]),z,M,B,9,a[21]),H,z,A,14,a[22]),D,H,y,20,a[23]),M=u(M,D=u(D,H=u(H,z,M,D,m,5,a[24]),z,M,x,9,a[25]),H,z,l,14,a[26]),D,H,_,20,a[27]),M=u(M,D=u(D,H=u(H,z,M,D,S,5,a[28]),z,M,d,9,a[29]),H,z,w,14,a[30]),D,H,C,20,a[31]),M=f(M,D=f(D,H=f(H,z,M,D,v,4,a[32]),z,M,_,11,a[33]),H,z,b,16,a[34]),D,H,x,23,a[35]),M=f(M,D=f(D,H=f(H,z,M,D,p,4,a[36]),z,M,y,11,a[37]),H,z,w,16,a[38]),D,H,B,23,a[39]),M=f(M,D=f(D,H=f(H,z,M,D,S,4,a[40]),z,M,s,11,a[41]),H,z,l,16,a[42]),D,H,g,23,a[43]),M=f(M,D=f(D,H=f(H,z,M,D,m,4,a[44]),z,M,C,11,a[45]),H,z,A,16,a[46]),D,H,d,23,a[47]),M=h(M,D=h(D,H=h(H,z,M,D,s,6,a[48]),z,M,w,10,a[49]),H,z,x,15,a[50]),D,H,v,21,a[51]),M=h(M,D=h(D,H=h(H,z,M,D,C,6,a[52]),z,M,l,10,a[53]),H,z,B,15,a[54]),D,H,p,21,a[55]),M=h(M,D=h(D,H=h(H,z,M,D,_,6,a[56]),z,M,A,10,a[57]),H,z,g,15,a[58]),D,H,S,21,a[59]),M=h(M,D=h(D,H=h(H,z,M,D,y,6,a[60]),z,M,b,10,a[61]),H,z,d,15,a[62]),D,H,m,21,a[63]),o[0]=o[0]+H|0,o[1]=o[1]+z|0,o[2]=o[2]+M|0,o[3]=o[3]+D|0},_doFinalize:function(){var r=this._data,n=r.words,e=8*this._nDataBytes,i=8*r.sigBytes;n[i>>>5]|=128<<24-i%32;var o=t.floor(e/4294967296),a=e;n[15+(i+64>>>9<<4)]=16711935&(o<<8|o>>>24)|4278255360&(o<<24|o>>>8),n[14+(i+64>>>9<<4)]=16711935&(a<<8|a>>>24)|4278255360&(a<<24|a>>>8),r.sigBytes=4*(n.length+1),this._process();for(var s=this._hash,c=s.words,u=0;u<4;u++){var f=c[u];c[u]=16711935&(f<<8|f>>>24)|4278255360&(f<<24|f>>>8)}return s},clone:function(){var t=i.clone.call(this);return t._hash=this._hash.clone(),t}});function c(t,r,n,e,i,o,a){var s=t+(r&n|~r&e)+i+a;return(s<<o|s>>>32-o)+r}function u(t,r,n,e,i,o,a){var s=t+(r&e|n&~e)+i+a;return(s<<o|s>>>32-o)+r}function f(t,r,n,e,i,o,a){var s=t+(r^n^e)+i+a;return(s<<o|s>>>32-o)+r}function h(t,r,n,e,i,o,a){var s=t+(n^(r|~e))+i+a;return(s<<o|s>>>32-o)+r}r.MD5=i._createHelper(s),r.HmacMD5=i._createHmacHelper(s)}(Math),function(){var t=CryptoJS,r=t.lib.WordArray;t.enc.Base64={stringify:function(t){var r=t.words,n=t.sigBytes,e=this._map;t.clamp();for(var i=[],o=0;o<n;o+=3)for(var a=(r[o>>>2]>>>24-o%4*8&255)<<16|(r[o+1>>>2]>>>24-(o+1)%4*8&255)<<8|r[o+2>>>2]>>>24-(o+2)%4*8&255,s=0;s<4&&o+.75*s<n;s++)i.push(e.charAt(a>>>6*(3-s)&63));var c=e.charAt(64);if(c)for(;i.length%4;)i.push(c);return i.join("")},parse:function(t){var n=t.length,e=this._map,i=this._reverseMap;if(!i){i=this._reverseMap=[];for(var o=0;o<e.length;o++)i[e.charCodeAt(o)]=o}var a=e.charAt(64);if(a){var s=t.indexOf(a);-1!==s&&(n=s)}return function(t,n,e){for(var i=[],o=0,a=0;a<n;a++)if(a%4){var s=e[t.charCodeAt(a-1)]<<a%4*2,c=e[t.charCodeAt(a)]>>>6-a%4*2;i[o>>>2]|=(s|c)<<24-o%4*8,o++}return r.create(i,o)}(t,n,i)},_map:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="}}();};function md5(word){return CryptoJS.MD5(word).toString();}
-
-function Env(t,e){class s{constructor(t){this.env=t}send(t,e="GET"){t="string"==typeof t?{url:t}:t;let s=this.get;"POST"===e&&(s=this.post);const i=new Promise(((e,i)=>{s.call(this,t,((t,s,o)=>{t?i(t):e(s)}))}));return t.timeout?((t,e=1e3)=>Promise.race([t,new Promise(((t,s)=>{setTimeout((()=>{s(new Error("请求超时"))}),e)}))]))(i,t.timeout):i}get(t){return this.send.call(this.env,t)}post(t){return this.send.call(this.env,t,"POST")}}return new class{constructor(t,e){this.logLevels={debug:0,info:1,warn:2,error:3},this.logLevelPrefixs={debug:"[DEBUG] ",info:"[INFO] ",warn:"[WARN] ",error:"[ERROR] "},this.logLevel="info",this.name=t,this.http=new s(this),this.data=null,this.dataFile="box.dat",this.logs=[],this.isMute=!1,this.isNeedRewrite=!1,this.logSeparator="\n",this.encoding="utf-8",this.startTime=(new Date).getTime(),Object.assign(this,e),this.log("",`🔔${this.name}, 开始!`)}getEnv(){return"undefined"!=typeof $environment&&$environment["surge-version"]?"Surge":"undefined"!=typeof $environment&&$environment["stash-version"]?"Stash":"undefined"!=typeof module&&module.exports?"Node.js":"undefined"!=typeof $task?"Quantumult X":"undefined"!=typeof $loon?"Loon":"undefined"!=typeof $rocket?"Shadowrocket":void 0}isNode(){return"Node.js"===this.getEnv()}isQuanX(){return"Quantumult X"===this.getEnv()}isSurge(){return"Surge"===this.getEnv()}isLoon(){return"Loon"===this.getEnv()}isShadowrocket(){return"Shadowrocket"===this.getEnv()}isStash(){return"Stash"===this.getEnv()}toObj(t,e=null){try{return JSON.parse(t)}catch{return e}}toStr(t,e=null,...s){try{return JSON.stringify(t,...s)}catch{return e}}getjson(t,e){let s=e;if(this.getdata(t))try{s=JSON.parse(this.getdata(t))}catch{}return s}setjson(t,e){try{return this.setdata(JSON.stringify(t),e)}catch{return!1}}getScript(t){return new Promise((e=>{this.get({url:t},((t,s,i)=>e(i)))}))}runScript(t,e){return new Promise((s=>{let i=this.getdata("@chavy_boxjs_userCfgs.httpapi");i=i?i.replace(/\n/g,"").trim():i;let o=this.getdata("@chavy_boxjs_userCfgs.httpapi_timeout");o=o?1*o:20,o=e&&e.timeout?e.timeout:o;const[r,a]=i.split("@"),n={url:`http://${a}/v1/scripting/evaluate`,body:{script_text:t,mock_type:"cron",timeout:o},headers:{"X-Key":r,Accept:"*/*"},policy:"DIRECT",timeout:o};this.post(n,((t,e,i)=>s(i)))})).catch((t=>this.logErr(t)))}loaddata(){if(!this.isNode())return{};{this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e);if(!s&&!i)return{};{const i=s?t:e;try{return JSON.parse(this.fs.readFileSync(i))}catch(t){return{}}}}}writedata(){if(this.isNode()){this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e),o=JSON.stringify(this.data);s?this.fs.writeFileSync(t,o):i?this.fs.writeFileSync(e,o):this.fs.writeFileSync(t,o)}}lodash_get(t,e,s){const i=e.replace(/\[(\d+)\]/g,".$1").split(".");let o=t;for(const t of i)if(o=Object(o)[t],void 0===o)return s;return o}lodash_set(t,e,s){return Object(t)!==t||(Array.isArray(e)||(e=e.toString().match(/[^.[\]]+/g)||[]),e.slice(0,-1).reduce(((t,s,i)=>Object(t[s])===t[s]?t[s]:t[s]=Math.abs(e[i+1])>>0==+e[i+1]?[]:{}),t)[e[e.length-1]]=s),t}getdata(t){let e=this.getval(t);if(/^@/.test(t)){const[,s,i]=/^@(.*?)\.(.*?)$/.exec(t),o=s?this.getval(s):"";if(o)try{const t=JSON.parse(o);e=t?this.lodash_get(t,i,""):e}catch(t){e=""}}return e}setdata(t,e){let s=!1;if(/^@/.test(e)){const[,i,o]=/^@(.*?)\.(.*?)$/.exec(e),r=this.getval(i),a=i?"null"===r?null:r||"{}":"{}";try{const e=JSON.parse(a);this.lodash_set(e,o,t),s=this.setval(JSON.stringify(e),i)}catch(e){const r={};this.lodash_set(r,o,t),s=this.setval(JSON.stringify(r),i)}}else s=this.setval(t,e);return s}getval(t){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":return $persistentStore.read(t);case"Quantumult X":return $prefs.valueForKey(t);case"Node.js":return this.data=this.loaddata(),this.data[t];default:return this.data&&this.data[t]||null}}setval(t,e){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":return $persistentStore.write(t,e);case"Quantumult X":return $prefs.setValueForKey(t,e);case"Node.js":return this.data=this.loaddata(),this.data[e]=t,this.writedata(),!0;default:return this.data&&this.data[e]||null}}initGotEnv(t){this.got=this.got?this.got:require("got"),this.cktough=this.cktough?this.cktough:require("tough-cookie"),this.ckjar=this.ckjar?this.ckjar:new this.cktough.CookieJar,t&&(t.headers=t.headers?t.headers:{},t&&(t.headers=t.headers?t.headers:{},void 0===t.headers.cookie&&void 0===t.headers.Cookie&&void 0===t.cookieJar&&(t.cookieJar=this.ckjar)))}get(t,e=(()=>{})){switch(t.headers&&(delete t.headers["Content-Type"],delete t.headers["Content-Length"],delete t.headers["content-type"],delete t.headers["content-length"]),t.params&&(t.url+="?"+this.queryStr(t.params)),void 0===t.followRedirect||t.followRedirect||((this.isSurge()||this.isLoon())&&(t["auto-redirect"]=!1),this.isQuanX()&&(t.opts?t.opts.redirection=!1:t.opts={redirection:!1})),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:this.isSurge()&&this.isNeedRewrite&&(t.headers=t.headers||{},Object.assign(t.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient.get(t,((t,s,i)=>{!t&&s&&(s.body=i,s.statusCode=s.status?s.status:s.statusCode,s.status=s.statusCode),e(t,s,i)}));break;case"Quantumult X":this.isNeedRewrite&&(t.opts=t.opts||{},Object.assign(t.opts,{hints:!1})),$task.fetch(t).then((t=>{const{statusCode:s,statusCode:i,headers:o,body:r,bodyBytes:a}=t;e(null,{status:s,statusCode:i,headers:o,body:r,bodyBytes:a},r,a)}),(t=>e(t&&t.error||"UndefinedError")));break;case"Node.js":let s=require("iconv-lite");this.initGotEnv(t),this.got(t).on("redirect",((t,e)=>{try{if(t.headers["set-cookie"]){const s=t.headers["set-cookie"].map(this.cktough.Cookie.parse).toString();s&&this.ckjar.setCookieSync(s,null),e.cookieJar=this.ckjar}}catch(t){this.logErr(t)}})).then((t=>{const{statusCode:i,statusCode:o,headers:r,rawBody:a}=t,n=s.decode(a,this.encoding);e(null,{status:i,statusCode:o,headers:r,rawBody:a,body:n},n)}),(t=>{const{message:i,response:o}=t;e(i,o,o&&s.decode(o.rawBody,this.encoding))}));break}}post(t,e=(()=>{})){const s=t.method?t.method.toLocaleLowerCase():"post";switch(t.body&&t.headers&&!t.headers["Content-Type"]&&!t.headers["content-type"]&&(t.headers["content-type"]="application/x-www-form-urlencoded"),t.headers&&(delete t.headers["Content-Length"],delete t.headers["content-length"]),void 0===t.followRedirect||t.followRedirect||((this.isSurge()||this.isLoon())&&(t["auto-redirect"]=!1),this.isQuanX()&&(t.opts?t.opts.redirection=!1:t.opts={redirection:!1})),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:this.isSurge()&&this.isNeedRewrite&&(t.headers=t.headers||{},Object.assign(t.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient[s](t,((t,s,i)=>{!t&&s&&(s.body=i,s.statusCode=s.status?s.status:s.statusCode,s.status=s.statusCode),e(t,s,i)}));break;case"Quantumult X":t.method=s,this.isNeedRewrite&&(t.opts=t.opts||{},Object.assign(t.opts,{hints:!1})),$task.fetch(t).then((t=>{const{statusCode:s,statusCode:i,headers:o,body:r,bodyBytes:a}=t;e(null,{status:s,statusCode:i,headers:o,body:r,bodyBytes:a},r,a)}),(t=>e(t&&t.error||"UndefinedError")));break;case"Node.js":let i=require("iconv-lite");this.initGotEnv(t);const{url:o,...r}=t;this.got[s](o,r).then((t=>{const{statusCode:s,statusCode:o,headers:r,rawBody:a}=t,n=i.decode(a,this.encoding);e(null,{status:s,statusCode:o,headers:r,rawBody:a,body:n},n)}),(t=>{const{message:s,response:o}=t;e(s,o,o&&i.decode(o.rawBody,this.encoding))}));break}}time(t,e=null){const s=e?new Date(e):new Date;let i={"M+":s.getMonth()+1,"d+":s.getDate(),"H+":s.getHours(),"m+":s.getMinutes(),"s+":s.getSeconds(),"q+":Math.floor((s.getMonth()+3)/3),S:s.getMilliseconds()};/(y+)/.test(t)&&(t=t.replace(RegExp.$1,(s.getFullYear()+"").substr(4-RegExp.$1.length)));for(let e in i)new RegExp("("+e+")").test(t)&&(t=t.replace(RegExp.$1,1==RegExp.$1.length?i[e]:("00"+i[e]).substr((""+i[e]).length)));return t}queryStr(t){let e="";for(const s in t){let i=t[s];null!=i&&""!==i&&("object"==typeof i&&(i=JSON.stringify(i)),e+=`${s}=${i}&`)}return e=e.substring(0,e.length-1),e}msg(e=t,s="",i="",o={}){const r=t=>{const{$open:e,$copy:s,$media:i,$mediaMime:o}=t;switch(typeof t){case void 0:return t;case"string":switch(this.getEnv()){case"Surge":case"Stash":default:return{url:t};case"Loon":case"Shadowrocket":return t;case"Quantumult X":return{"open-url":t};case"Node.js":return}case"object":switch(this.getEnv()){case"Surge":case"Stash":case"Shadowrocket":default:{const r={};let a=t.openUrl||t.url||t["open-url"]||e;a&&Object.assign(r,{action:"open-url",url:a});let n=t["update-pasteboard"]||t.updatePasteboard||s;if(n&&Object.assign(r,{action:"clipboard",text:n}),i){let t,e,s;if(i.startsWith("http"))t=i;else if(i.startsWith("data:")){const[t]=i.split(";"),[,o]=i.split(",");e=o,s=t.replace("data:","")}else{e=i,s=(t=>{const e={JVBERi0:"application/pdf",R0lGODdh:"image/gif",R0lGODlh:"image/gif",iVBORw0KGgo:"image/png","/9j/":"image/jpg"};for(var s in e)if(0===t.indexOf(s))return e[s];return null})(i)}Object.assign(r,{"media-url":t,"media-base64":e,"media-base64-mime":o??s})}return Object.assign(r,{"auto-dismiss":t["auto-dismiss"],sound:t.sound}),r}case"Loon":{const s={};let o=t.openUrl||t.url||t["open-url"]||e;o&&Object.assign(s,{openUrl:o});let r=t.mediaUrl||t["media-url"];return i?.startsWith("http")&&(r=i),r&&Object.assign(s,{mediaUrl:r}),console.log(JSON.stringify(s)),s}case"Quantumult X":{const o={};let r=t["open-url"]||t.url||t.openUrl||e;r&&Object.assign(o,{"open-url":r});let a=t["media-url"]||t.mediaUrl;i?.startsWith("http")&&(a=i),a&&Object.assign(o,{"media-url":a});let n=t["update-pasteboard"]||t.updatePasteboard||s;return n&&Object.assign(o,{"update-pasteboard":n}),console.log(JSON.stringify(o)),o}case"Node.js":return}default:return}};if(!this.isMute)switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:$notification.post(e,s,i,r(o));break;case"Quantumult X":$notify(e,s,i,r(o));break;case"Node.js":break}if(!this.isMuteLog){let t=["","==============📣系统通知📣=============="];t.push(e),s&&t.push(s),i&&t.push(i),console.log(t.join("\n")),this.logs=this.logs.concat(t)}}debug(...t){this.logLevels[this.logLevel]<=this.logLevels.debug&&(t.length>0&&(this.logs=[...this.logs,...t]),console.log(`${this.logLevelPrefixs.debug}${t.map((t=>t??String(t))).join(this.logSeparator)}`))}info(...t){this.logLevels[this.logLevel]<=this.logLevels.info&&(t.length>0&&(this.logs=[...this.logs,...t]),console.log(`${this.logLevelPrefixs.info}${t.map((t=>t??String(t))).join(this.logSeparator)}`))}warn(...t){this.logLevels[this.logLevel]<=this.logLevels.warn&&(t.length>0&&(this.logs=[...this.logs,...t]),console.log(`${this.logLevelPrefixs.warn}${t.map((t=>t??String(t))).join(this.logSeparator)}`))}error(...t){this.logLevels[this.logLevel]<=this.logLevels.error&&(t.length>0&&(this.logs=[...this.logs,...t]),console.log(`${this.logLevelPrefixs.error}${t.map((t=>t??String(t))).join(this.logSeparator)}`))}log(...t){t.length>0&&(this.logs=[...this.logs,...t]),console.log(t.map((t=>t??String(t))).join(this.logSeparator))}logErr(t,e){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":case"Quantumult X":default:this.log("",`❗️${this.name}, 错误!`,e,t);break;case"Node.js":this.log("",`❗️${this.name}, 错误!`,e,void 0!==t.message?t.message:t,t.stack);break}}wait(t){return new Promise((e=>setTimeout(e,t)))}done(t={}){const e=((new Date).getTime()-this.startTime)/1e3;switch(this.log("",`🔔${this.name}, 结束! 🕛 ${e} 秒`),this.log(),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":case"Quantumult X":default:$done(t);break;case"Node.js":process.exit(1)}}}(t,e)}
+// prettier-ignore
+function Env(e,t){class s{constructor(e){this.env=e}send(e,t="GET"){e="string"==typeof e?{url:e}:e;let s=this.get;"POST"===t&&(s=this.post);const i=new Promise(((t,i)=>{s.call(this,e,((e,s,o)=>{e?i(e):t(s)}))}));return e.timeout?((e,t=1e3)=>Promise.race([e,new Promise(((e,s)=>{setTimeout((()=>{s(new Error("请求超时"))}),t)}))]))(i,e.timeout):i}get(e){return this.send.call(this.env,e)}post(e){return this.send.call(this.env,e,"POST")}}return new class{constructor(e,t){this.logLevels={debug:0,info:1,warn:2,error:3},this.logLevelPrefixs={debug:"[DEBUG] ",info:"[INFO] ",warn:"[WARN] ",error:"[ERROR] "},this.logLevel="info",this.name=e,this.http=new s(this),this.data=null,this.dataFile="box.dat",this.logs=[],this.isMute=!1,this.isNeedRewrite=!1,this.logSeparator="\n",this.encoding="utf-8",this.startTime=(new Date).getTime(),Object.assign(this,t),this.log("",`🔔${this.name}, 开始!`)}getEnv(){return"undefined"!=typeof $environment&&$environment["surge-version"]?"Surge":"undefined"!=typeof $environment&&$environment["stash-version"]?"Stash":"undefined"!=typeof module&&module.exports?"Node.js":"undefined"!=typeof $task?"Quantumult X":"undefined"!=typeof $loon?"Loon":"undefined"!=typeof $rocket?"Shadowrocket":void 0}isNode(){return"Node.js"===this.getEnv()}isQuanX(){return"Quantumult X"===this.getEnv()}isSurge(){return"Surge"===this.getEnv()}isLoon(){return"Loon"===this.getEnv()}isShadowrocket(){return"Shadowrocket"===this.getEnv()}isStash(){return"Stash"===this.getEnv()}toObj(e,t=null){try{return JSON.parse(e)}catch{return t}}toStr(e,t=null,...s){try{return JSON.stringify(e,...s)}catch{return t}}getjson(e,t){let s=t;if(this.getdata(e))try{s=JSON.parse(this.getdata(e))}catch{}return s}setjson(e,t){try{return this.setdata(JSON.stringify(e),t)}catch{return!1}}getScript(e){return new Promise((t=>{this.get({url:e},((e,s,i)=>t(i)))}))}runScript(e,t){return new Promise((s=>{let i=this.getdata("@chavy_boxjs_userCfgs.httpapi");i=i?i.replace(/\n/g,"").trim():i;let o=this.getdata("@chavy_boxjs_userCfgs.httpapi_timeout");o=o?1*o:20,o=t&&t.timeout?t.timeout:o;const[r,a]=i.split("@"),n={url:`http://${a}/v1/scripting/evaluate`,body:{script_text:e,mock_type:"cron",timeout:o},headers:{"X-Key":r,Accept:"*/*"},policy:"DIRECT",timeout:o};this.post(n,((e,t,i)=>s(i)))})).catch((e=>this.logErr(e)))}loaddata(){if(!this.isNode())return{};{this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const e=this.path.resolve(this.dataFile),t=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(e),i=!s&&this.fs.existsSync(t);if(!s&&!i)return{};{const i=s?e:t;try{return JSON.parse(this.fs.readFileSync(i))}catch(e){return{}}}}}writedata(){if(this.isNode()){this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const e=this.path.resolve(this.dataFile),t=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(e),i=!s&&this.fs.existsSync(t),o=JSON.stringify(this.data);s?this.fs.writeFileSync(e,o):i?this.fs.writeFileSync(t,o):this.fs.writeFileSync(e,o)}}lodash_get(e,t,s){const i=t.replace(/\[(\d+)\]/g,".$1").split(".");let o=e;for(const e of i)if(o=Object(o)[e],void 0===o)return s;return o}lodash_set(e,t,s){return Object(e)!==e||(Array.isArray(t)||(t=t.toString().match(/[^.[\]]+/g)||[]),t.slice(0,-1).reduce(((e,s,i)=>Object(e[s])===e[s]?e[s]:e[s]=Math.abs(t[i+1])>>0==+t[i+1]?[]:{}),e)[t[t.length-1]]=s),e}getdata(e){let t=this.getval(e);if(/^@/.test(e)){const[,s,i]=/^@(.*?)\.(.*?)$/.exec(e),o=s?this.getval(s):"";if(o)try{const e=JSON.parse(o);t=e?this.lodash_get(e,i,""):t}catch(e){t=""}}return t}setdata(e,t){let s=!1;if(/^@/.test(t)){const[,i,o]=/^@(.*?)\.(.*?)$/.exec(t),r=this.getval(i),a=i?"null"===r?null:r||"{}":"{}";try{const t=JSON.parse(a);this.lodash_set(t,o,e),s=this.setval(JSON.stringify(t),i)}catch(t){const r={};this.lodash_set(r,o,e),s=this.setval(JSON.stringify(r),i)}}else s=this.setval(e,t);return s}getval(e){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":return $persistentStore.read(e);case"Quantumult X":return $prefs.valueForKey(e);case"Node.js":return this.data=this.loaddata(),this.data[e];default:return this.data&&this.data[e]||null}}setval(e,t){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":return $persistentStore.write(e,t);case"Quantumult X":return $prefs.setValueForKey(e,t);case"Node.js":return this.data=this.loaddata(),this.data[t]=e,this.writedata(),!0;default:return this.data&&this.data[t]||null}}initGotEnv(e){this.got=this.got?this.got:require("got"),this.cktough=this.cktough?this.cktough:require("tough-cookie"),this.ckjar=this.ckjar?this.ckjar:new this.cktough.CookieJar,e&&(e.headers=e.headers?e.headers:{},e&&(e.headers=e.headers?e.headers:{},void 0===e.headers.cookie&&void 0===e.headers.Cookie&&void 0===e.cookieJar&&(e.cookieJar=this.ckjar)))}get(e,t=(()=>{})){switch(e.headers&&(delete e.headers["Content-Type"],delete e.headers["Content-Length"],delete e.headers["content-type"],delete e.headers["content-length"]),e.params&&(e.url+="?"+this.queryStr(e.params)),void 0===e.followRedirect||e.followRedirect||((this.isSurge()||this.isLoon())&&(e["auto-redirect"]=!1),this.isQuanX()&&(e.opts?e.opts.redirection=!1:e.opts={redirection:!1})),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:this.isSurge()&&this.isNeedRewrite&&(e.headers=e.headers||{},Object.assign(e.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient.get(e,((e,s,i)=>{!e&&s&&(s.body=i,s.statusCode=s.status?s.status:s.statusCode,s.status=s.statusCode),t(e,s,i)}));break;case"Quantumult X":this.isNeedRewrite&&(e.opts=e.opts||{},Object.assign(e.opts,{hints:!1})),$task.fetch(e).then((e=>{const{statusCode:s,statusCode:i,headers:o,body:r,bodyBytes:a}=e;t(null,{status:s,statusCode:i,headers:o,body:r,bodyBytes:a},r,a)}),(e=>t(e&&e.error||"UndefinedError")));break;case"Node.js":let s=require("iconv-lite");this.initGotEnv(e),this.got(e).on("redirect",((e,t)=>{try{if(e.headers["set-cookie"]){const s=e.headers["set-cookie"].map(this.cktough.Cookie.parse).toString();s&&this.ckjar.setCookieSync(s,null),t.cookieJar=this.ckjar}}catch(e){this.logErr(e)}})).then((e=>{const{statusCode:i,statusCode:o,headers:r,rawBody:a}=e,n=s.decode(a,this.encoding);t(null,{status:i,statusCode:o,headers:r,rawBody:a,body:n},n)}),(e=>{const{message:i,response:o}=e;t(i,o,o&&s.decode(o.rawBody,this.encoding))}));break}}post(e,t=(()=>{})){const s=e.method?e.method.toLocaleLowerCase():"post";switch(e.body&&e.headers&&!e.headers["Content-Type"]&&!e.headers["content-type"]&&(e.headers["content-type"]="application/x-www-form-urlencoded"),e.headers&&(delete e.headers["Content-Length"],delete e.headers["content-length"]),void 0===e.followRedirect||e.followRedirect||((this.isSurge()||this.isLoon())&&(e["auto-redirect"]=!1),this.isQuanX()&&(e.opts?e.opts.redirection=!1:e.opts={redirection:!1})),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:this.isSurge()&&this.isNeedRewrite&&(e.headers=e.headers||{},Object.assign(e.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient[s](e,((e,s,i)=>{!e&&s&&(s.body=i,s.statusCode=s.status?s.status:s.statusCode,s.status=s.statusCode),t(e,s,i)}));break;case"Quantumult X":e.method=s,this.isNeedRewrite&&(e.opts=e.opts||{},Object.assign(e.opts,{hints:!1})),$task.fetch(e).then((e=>{const{statusCode:s,statusCode:i,headers:o,body:r,bodyBytes:a}=e;t(null,{status:s,statusCode:i,headers:o,body:r,bodyBytes:a},r,a)}),(e=>t(e&&e.error||"UndefinedError")));break;case"Node.js":let i=require("iconv-lite");this.initGotEnv(e);const{url:o,...r}=e;this.got[s](o,r).then((e=>{const{statusCode:s,statusCode:o,headers:r,rawBody:a}=e,n=i.decode(a,this.encoding);t(null,{status:s,statusCode:o,headers:r,rawBody:a,body:n},n)}),(e=>{const{message:s,response:o}=e;t(s,o,o&&s.decode(o.rawBody,this.encoding))}));break}}time(e,t=null){const s=t?new Date(t):new Date;let i={"M+":s.getMonth()+1,"d+":s.getDate(),"H+":s.getHours(),"m+":s.getMinutes(),"s+":s.getSeconds(),"q+":Math.floor((s.getMonth()+3)/3),S:s.getMilliseconds()};/(y+)/.test(e)&&(e=e.replace(RegExp.$1,(s.getFullYear()+"").substr(4-RegExp.$1.length)));for(let t in i)new RegExp("("+t+")").test(e)&&(e=e.replace(RegExp.$1,1==RegExp.$1.length?i[t]:("00"+i[t]).substr((""+i[t]).length)));return e}queryStr(e){let t="";for(const s in e){let i=e[s];null!=i&&""!==i&&("object"==typeof i&&(i=JSON.stringify(i)),t+=`${s}=${i}&`)}return t=t.substring(0,t.length-1),t}msg(t=e,s="",i="",o={}){const r=e=>{const{$open:t,$copy:s,$media:i,$mediaMime:o}=e;switch(typeof e){case void 0:return e;case"string":switch(this.getEnv()){case"Surge":case"Stash":default:return{url:e};case"Loon":case"Shadowrocket":return e;case"Quantumult X":return{"open-url":e};case"Node.js":return}case"object":switch(this.getEnv()){case"Surge":case"Stash":case"Shadowrocket":default:{const r={};let a=e.openUrl||e.url||e["open-url"]||t;a&&Object.assign(r,{action:"open-url",url:a});let n=e["update-pasteboard"]||e.updatePasteboard||s;n&&Object.assign(r,{action:"clipboard",text:n});let h=e.mediaUrl||e["media-url"]||i;if(h){let e,t;if(h.startsWith("http"));else if(h.startsWith("data:")){const[s]=h.split(";"),[,i]=h.split(",");e=i,t=s.replace("data:","")}else{e=h,t=(e=>{const t={JVBERi0:"application/pdf",R0lGODdh:"image/gif",R0lGODlh:"image/gif",iVBORw0KGgo:"image/png","/9j/":"image/jpg"};for(var s in t)if(0===e.indexOf(s))return t[s];return null})(h)}Object.assign(r,{"media-url":h,"media-base64":e,"media-base64-mime":o??t})}return Object.assign(r,{"auto-dismiss":e["auto-dismiss"],sound:e.sound}),r}case"Loon":{const s={};let o=e.openUrl||e.url||e["open-url"]||t;o&&Object.assign(s,{openUrl:o});let r=e.mediaUrl||e["media-url"]||i;return r&&Object.assign(s,{mediaUrl:r}),console.log(JSON.stringify(s)),s}case"Quantumult X":{const o={};let r=e["open-url"]||e.url||e.openUrl||t;r&&Object.assign(o,{"open-url":r});let a=e.mediaUrl||e["media-url"]||i;a&&Object.assign(o,{"media-url":a});let n=e["update-pasteboard"]||e.updatePasteboard||s;return n&&Object.assign(o,{"update-pasteboard":n}),console.log(JSON.stringify(o)),o}case"Node.js":return}default:return}};if(!this.isMute)switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":default:$notification.post(t,s,i,r(o));break;case"Quantumult X":$notify(t,s,i,r(o));break;case"Node.js":break}if(!this.isMuteLog){let e=["","==============📣系统通知📣=============="];e.push(t),s&&e.push(s),i&&e.push(i),console.log(e.join("\n")),this.logs=this.logs.concat(e)}}debug(...e){this.logLevels[this.logLevel]<=this.logLevels.debug&&(e.length>0&&(this.logs=[...this.logs,...e]),console.log(`${this.logLevelPrefixs.debug}${e.map((e=>e??String(e))).join(this.logSeparator)}`))}info(...e){this.logLevels[this.logLevel]<=this.logLevels.info&&(e.length>0&&(this.logs=[...this.logs,...e]),console.log(`${this.logLevelPrefixs.info}${e.map((e=>e??String(e))).join(this.logSeparator)}`))}warn(...e){this.logLevels[this.logLevel]<=this.logLevels.warn&&(e.length>0&&(this.logs=[...this.logs,...e]),console.log(`${this.logLevelPrefixs.warn}${e.map((e=>e??String(e))).join(this.logSeparator)}`))}error(...e){this.logLevels[this.logLevel]<=this.logLevels.error&&(e.length>0&&(this.logs=[...this.logs,...e]),console.log(`${this.logLevelPrefixs.error}${e.map((e=>e??String(e))).join(this.logSeparator)}`))}log(...e){e.length>0&&(this.logs=[...this.logs,...e]),console.log(e.map((e=>e??String(e))).join(this.logSeparator))}logErr(e,t){switch(this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":case"Quantumult X":default:this.log("",`❗️${this.name}, 错误!`,t,e);break;case"Node.js":this.log("",`❗️${this.name}, 错误!`,t,void 0!==e.message?e.message:e,e.stack);break}}wait(e){return new Promise((t=>setTimeout(t,e)))}done(e={}){const t=((new Date).getTime()-this.startTime)/1e3;switch(this.log("",`🔔${this.name}, 结束! 🕛 ${t} 秒`),this.log(),this.getEnv()){case"Surge":case"Loon":case"Stash":case"Shadowrocket":case"Quantumult X":default:$done(e);break;case"Node.js":process.exit(1)}}}(e,t)}
